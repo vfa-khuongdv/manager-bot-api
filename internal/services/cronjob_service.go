@@ -110,11 +110,7 @@ func (cs *CronService) Stop() {
 
 // SyncAll synchronizes all active reminder schedules from the database
 func (cs *CronService) SyncAll() {
-
 	logger.Infof("Syncing all active reminder schedules from the database")
-
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
 
 	var schedules []models.ReminderSchedule
 	result := cs.db.Where("active = ?", true).Find(&schedules)
@@ -125,12 +121,8 @@ func (cs *CronService) SyncAll() {
 
 	for _, s := range schedules {
 		sCopy := s
-		cs.Register(&sCopy)
+		cs.Register(&sCopy) // Register handles locking itself
 	}
 
-	// show all active schedules
 	fmt.Printf("Active schedules: %v\n", cs.entries)
-	for id, entryID := range cs.entries {
-		fmt.Printf("Schedule ID: %d, Entry ID: %d\n", id, entryID)
-	}
 }

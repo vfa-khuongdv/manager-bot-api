@@ -200,6 +200,8 @@ func (h *ProjectHandler) Delete(c *gin.Context) {
 		return
 	}
 
+	h.cronService.SyncAll()
+
 	utils.RespondWithOK(c, http.StatusOK, gin.H{"message": "Project deleted successfully"})
 }
 

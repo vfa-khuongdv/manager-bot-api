@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"fmt"
+
 	"github.com/vfa-khuongdv/golang-cms/internal/models"
 	"gorm.io/gorm"
 )
@@ -59,6 +61,18 @@ func (repo *ProjectRepository) Update(project *models.Project) (*models.Project,
 }
 
 func (repo *ProjectRepository) Delete(id uint) error {
+	// Delete all reminder schedules associated with the project
+	var schedules []models.ReminderSchedule
+	if err := repo.db.Where("project_id = ?", id).Find(&schedules).Error; err != nil {
+		fmt.Println("Error finding schedules:", err)
+	}
+
+	for _, schedule := range schedules {
+		if err := repo.db.Delete(&schedule).Error; err != nil {
+			fmt.Println("Error deleting schedule:", err)
+		}
+	}
+
 	if err := repo.db.Delete(&models.Project{}, id).Error; err != nil {
 		return err
 	}
