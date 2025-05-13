@@ -1,0 +1,595 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Golang CMS API",
+        "description": "API documentation for Golang CMS",
+        "version": "1.0.0"
+    },
+    "host": "localhost:3000",
+    "basePath": "/api/v1",
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "paths": {
+        "/healthz": {
+            "get": {
+                "summary": "Health Check",
+                "description": "Returns the health status of the API",
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string",
+                                    "example": "ok"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "summary": "User login",
+                "description": "Authenticate a user and return JWT token",
+                "produces": [
+                    "application/json"
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Login credentials",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "required": [
+                                "email",
+                                "password"
+                            ],
+                            "properties": {
+                                "email": {
+                                    "type": "string",
+                                    "example": "user@example.com"
+                                },
+                                "password": {
+                                    "type": "string",
+                                    "example": "password123"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "token": {
+                                    "type": "string"
+                                },
+                                "refreshToken": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    }
+                }
+            }
+        },
+        "/refresh-token": {
+            "post": {
+                "summary": "Refresh authentication token",
+                "description": "Get a new JWT token using a refresh token",
+                "produces": [
+                    "application/json"
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "refreshToken": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully"
+                    },
+                    "401": {
+                        "description": "Invalid refresh token"
+                    }
+                }
+            }
+        },
+        "/users": {
+            "post": {
+                "summary": "Create a new user",
+                "description": "Creates a new user in the system",
+                "produces": [
+                    "application/json"
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "User details",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "email": {
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    }
+                }
+            }
+        }
+    },
+    "/reminder-schedules": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "summary": "Get all reminder schedules",
+                "description": "Returns a list of all reminder schedules with pagination support",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "type": "integer"
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "schedules": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/ReminderSchedule"
+                                    }
+                                },
+                                "pagination": {
+                                    "$ref": "#/definitions/Pagination"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "summary": "Create a new reminder schedule",
+                "description": "Creates a new reminder schedule",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "description": "Reminder schedule object",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ReminderScheduleInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Reminder schedule created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "/reminder-schedules/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "summary": "Get reminder schedule by ID",
+                "description": "Returns a single reminder schedule",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of reminder schedule to return",
+                        "required": true,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "schedule": {
+                                    "$ref": "#/definitions/ReminderSchedule"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID supplied"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Reminder schedule not found"
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "summary": "Update an existing reminder schedule",
+                "description": "Updates a reminder schedule",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of reminder schedule to update",
+                        "required": true,
+                        "type": "integer"
+                    },
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "description": "Updated reminder schedule object",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ReminderScheduleInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reminder schedule updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Reminder schedule not found"
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "summary": "Delete a reminder schedule",
+                "description": "Deletes a reminder schedule",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of reminder schedule to delete",
+                        "required": true,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reminder schedule deleted successfully"
+                    },
+                    "400": {
+                        "description": "Invalid ID supplied"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Reminder schedule not found"
+                    }
+                }
+            }
+        },
+        "/reminder-schedules/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "summary": "Toggle reminder schedule active status",
+                "description": "Enables or disables a reminder schedule",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of reminder schedule to update",
+                        "required": true,
+                        "type": "integer"
+                    },
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "description": "Status update object",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "active": {
+                                    "type": "boolean",
+                                    "description": "Active status of the reminder schedule"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reminder schedule status updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Reminder schedule not found"
+                    }
+                }
+            }
+        },
+        "/projects/{project_id}/reminder-schedules": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "summary": "Get reminder schedules by project ID",
+                "description": "Returns all reminder schedules for a specific project",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "path",
+                        "description": "ID of project to filter reminder schedules",
+                        "required": true,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "schedules": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/ReminderSchedule"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid project ID supplied"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Project not found"
+                    }
+                }
+            }
+        },
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    },
+    "definitions": {
+        "ReminderSchedule": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "Unique identifier for the reminder schedule"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Creation timestamp"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Last update timestamp"
+                },
+                "project_id": {
+                    "type": "integer",
+                    "description": "ID of the associated project"
+                },
+                "cron_expression": {
+                    "type": "string",
+                    "description": "Cron expression defining the schedule"
+                },
+                "chatwork_room_id": {
+                    "type": "string",
+                    "description": "Chatwork room ID where messages will be sent"
+                },
+                "chatwork_token": {
+                    "type": "string",
+                    "description": "Chatwork API token (masked in responses for security)"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Message content to be sent"
+                },
+                "active": {
+                    "type": "boolean",
+                    "description": "Whether the schedule is active"
+                }
+            }
+        },
+        "ReminderScheduleInput": {
+            "type": "object",
+            "required": [
+                "project_id",
+                "cron_expression",
+                "chatwork_room_id",
+                "chatwork_token"
+            ],
+            "properties": {
+                "project_id": {
+                    "type": "integer",
+                    "description": "ID of the associated project"
+                },
+                "cron_expression": {
+                    "type": "string",
+                    "description": "Cron expression defining the schedule"
+                },
+                "chatwork_room_id": {
+                    "type": "string",
+                    "description": "Chatwork room ID where messages will be sent"
+                },
+                "chatwork_token": {
+                    "type": "string",
+                    "description": "Chatwork API token"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Message content to be sent"
+                },
+                "active": {
+                    "type": "boolean",
+                    "description": "Whether the schedule is active",
+                    "default": true
+                }
+            }
+        },
+        "Pagination": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "description": "Current page number"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Number of items per page"
+                },
+                "total": {
+                    "type": "integer",
+                    "description": "Total number of items"
+                }
+            }
+        }
+    }
+}
