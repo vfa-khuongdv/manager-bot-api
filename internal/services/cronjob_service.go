@@ -110,8 +110,13 @@ func (cs *CronService) Stop() {
 
 // SyncAll synchronizes all active reminder schedules from the database
 func (cs *CronService) SyncAll() {
-	logger.Infof("Syncing all active reminder schedules from the database")
+	// Un Register all schedules
+	logger.Infof("Unregistering all active reminder schedules")
+	for _, id := range cs.entries {
+		cs.c.Remove(id)
+	}
 
+	logger.Infof("Registering all active reminder schedules")
 	var schedules []models.ReminderSchedule
 	result := cs.db.Where("active = ?", true).Find(&schedules)
 	if result.Error != nil {
