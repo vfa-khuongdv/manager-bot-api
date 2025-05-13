@@ -111,8 +111,8 @@ func (cs *CronService) Stop() {
 func (cs *CronService) SyncAll() {
 	// Un Register all schedules
 	logger.Infof("Unregistering all active reminder schedules")
-	for _, id := range cs.entries {
-		cs.c.Remove(id)
+	for id := range cs.entries {
+		cs.Remove(id)
 	}
 
 	logger.Infof("Registering all active reminder schedules")
