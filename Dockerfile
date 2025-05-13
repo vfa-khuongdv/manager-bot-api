@@ -33,6 +33,8 @@ WORKDIR /home/appuser/
 
 # Copy the pre-built binary from the builder stage
 COPY --from=builder /app/main .
+# Copy the internal directory which includes migrations
+COPY --from=builder /app/internal ./internal
 
 # Change ownership of the application files to the non-root user
 RUN chown -R appuser:appuser /home/appuser
