@@ -1,8 +1,7 @@
 package seeders
 
 import (
-	"fmt"
-
+	"github.com/vfa-khuongdv/golang-cms/pkg/logger"
 	"gorm.io/gorm"
 )
 
@@ -10,6 +9,6 @@ import (
 // It takes a GORM database connection as input and panics if any seeding operation fails
 func Run(db *gorm.DB) {
 
-	fmt.Println("Seeding database...")
+	logger.Info("Seeding database...")
 
 }

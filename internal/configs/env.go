@@ -1,9 +1,8 @@
 package configs
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	"github.com/joho/godotenv"
+	"github.com/vfa-khuongdv/golang-cms/pkg/logger"
 )
 
 // LoadEnv loads environment variables from a .env file.
@@ -11,6 +10,6 @@ import (
 // Uses godotenv package to load the environment variables.
 func LoadEnv() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, loading environment variables from the system.")
+		logger.Info("No .env file found, loading environment variables from the system.")
 	}
 }

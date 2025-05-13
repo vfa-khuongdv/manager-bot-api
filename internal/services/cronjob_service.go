@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/robfig/cron/v3"
@@ -99,13 +98,13 @@ func (cs *CronService) Remove(scheduleID uint) {
 // Start begins running the cron scheduler
 func (cs *CronService) Start() {
 	cs.c.Start()
-	fmt.Println("Cron service started")
+	logger.Info("Cron service started")
 }
 
 // Stop stops the cron scheduler
 func (cs *CronService) Stop() {
 	cs.c.Stop()
-	fmt.Println("Cron service stopped")
+	logger.Info("Cron service stopped")
 }
 
 // SyncAll synchronizes all active reminder schedules from the database
@@ -120,7 +119,7 @@ func (cs *CronService) SyncAll() {
 	var schedules []models.ReminderSchedule
 	result := cs.db.Where("active = ?", true).Find(&schedules)
 	if result.Error != nil {
-		fmt.Printf("Error loading reminder schedules: %v\n", result.Error)
+		logger.Errorf("Error loading reminder schedules: %v\n", result.Error)
 		return
 	}
 
@@ -129,5 +128,5 @@ func (cs *CronService) SyncAll() {
 		cs.Register(&sCopy) // Register handles locking itself
 	}
 
-	fmt.Printf("Active schedules: %v\n", cs.entries)
+	logger.Infof("Active schedules: %v\n", cs.entries)
 }

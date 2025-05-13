@@ -11,14 +11,16 @@ import (
 )
 
 func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
+	// Set Gin mode from environment variable
+	ginMode := utils.GetEnv("GIN_MODE", "debug")
+	gin.SetMode(ginMode)
+
 	// Initialize the default Gin router
 	router := gin.Default()
 
 	// Project
-
 	projectRepo := repositories.NewProjectRepository(db)
 	projectService := services.NewProjectService(projectRepo)
-
 	projectHandler := handlers.NewProjectHandler(projectService, cronService)
 
 	// Reminder
@@ -30,10 +32,6 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 		projectService,
 		cronService,
 	)
-
-	// Set Gin mode from environment variable
-	ginMode := utils.GetEnv("GIN_MODE", "debug")
-	gin.SetMode(ginMode)
 
 	// Add middleware for CORS and logging
 	router.Use(
