@@ -25,9 +25,14 @@ func NewProjectRepository(db *gorm.DB) *ProjectRepository {
 
 func (repo *ProjectRepository) GetAll() (*[]models.Project, error) {
 	var projects []models.Project
-	if err := repo.db.Find(&projects).Error; err != nil {
+	if err := repo.db.Preload("ReminderSchedules").Find(&projects).Error; err != nil {
 		return nil, err
 	}
+
+	for i := range projects {
+		projects[i].TotalReminders = len(projects[i].ReminderSchedules)
+	}
+
 	return &projects, nil
 }
 

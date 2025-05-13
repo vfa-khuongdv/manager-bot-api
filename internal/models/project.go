@@ -17,4 +17,5 @@ type Project struct {
 	DeletedAt   gorm.DeletedAt `json:"deletedAt,omitempty"` // JSON tag for DeletedAt
 
 	ReminderSchedules []ReminderSchedule `gorm:"foreignKey:ProjectID" json:"reminder_schedules,omitempty"`
+	TotalReminders    int                `gorm:"-" json:"totalReminders"` // gorm:"-": This tag tells GORM (the ORM you're using) to ignore this field during database operations, meaning it won't try to find a corresponding column in the
 }
