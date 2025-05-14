@@ -19,7 +19,7 @@ type IReminderScheduleService interface {
 }
 
 type ReminderScheduleService struct {
-	repo *repositories.ReminderScheduleRepository
+	repo repositories.IReminderScheduleRepository
 }
 
 // NewReminderScheduleService creates a new instance of ReminderScheduleService
@@ -28,7 +28,7 @@ type ReminderScheduleService struct {
 //
 // Returns:
 //   - *ReminderScheduleService: new instance of the service
-func NewReminderScheduleService(repo *repositories.ReminderScheduleRepository) *ReminderScheduleService {
+func NewReminderScheduleService(repo repositories.IReminderScheduleRepository) *ReminderScheduleService {
 	return &ReminderScheduleService{
 		repo: repo,
 	}

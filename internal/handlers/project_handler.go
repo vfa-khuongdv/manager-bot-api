@@ -22,11 +22,17 @@ type IProjectHandler interface {
 
 type ProjectHandler struct {
 	service     services.IProjectService
-	cronService services.ICronService // Added cronService
+	cronService services.ICronService
 }
 
-func NewProjectHandler(service services.IProjectService, cronService services.ICronService) *ProjectHandler { // Added cronService
-	return &ProjectHandler{service: service, cronService: cronService} // Added cronService
+func NewProjectHandler(
+	service services.IProjectService,
+	cronService services.ICronService,
+) *ProjectHandler {
+	return &ProjectHandler{
+		service:     service,
+		cronService: cronService,
+	}
 }
 
 func (h *ProjectHandler) GetAll(c *gin.Context) {

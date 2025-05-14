@@ -23,7 +23,7 @@ type IReminderScheduleHandler interface {
 type ReminderScheduleHandler struct {
 	service        services.IReminderScheduleService
 	projectService services.IProjectService
-	cronService    *services.CronService
+	cronService    services.ICronService
 }
 
 // NewReminderScheduleHandler creates a new instance of ReminderScheduleHandler
@@ -37,7 +37,7 @@ type ReminderScheduleHandler struct {
 func NewReminderScheduleHandler(
 	service services.IReminderScheduleService,
 	projectService services.IProjectService,
-	cronService *services.CronService,
+	cronService services.ICronService,
 ) *ReminderScheduleHandler {
 	return &ReminderScheduleHandler{
 		service:        service,
@@ -66,8 +66,8 @@ func (handler *ReminderScheduleHandler) CreateSchedule(ctx *gin.Context) {
 		CronExpression string `json:"cron_expression" binding:"required"`
 		ChatworkRoomID string `json:"chatwork_room_id" binding:"required"`
 		ChatworkToken  string `json:"chatwork_token" binding:"required"`
-		Message        string `json:"message"`
-		Active         bool   `json:"active"`
+		Message        string `json:"message" binding:"required"`
+		Active         bool   `json:"active" binding:"required"`
 	}
 
 	// Bind and validate JSON request body

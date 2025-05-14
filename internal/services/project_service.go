@@ -15,10 +15,10 @@ type IProjectService interface {
 }
 
 type ProjectService struct {
-	repo *repositories.ProjectRepository
+	repo repositories.IProjectRepository
 }
 
-func NewProjectService(repo *repositories.ProjectRepository) *ProjectService {
+func NewProjectService(repo repositories.IProjectRepository) *ProjectService {
 	return &ProjectService{
 		repo: repo,
 	}
