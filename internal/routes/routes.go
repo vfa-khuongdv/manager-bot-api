@@ -33,6 +33,11 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 		cronService,
 	)
 
+	// Hook handler
+	chatworkService := services.NewChatworkService()
+
+	hookHandler := handlers.NewHookHandler(chatworkService)
+
 	// Add middleware for CORS and logging
 	router.Use(
 		middlewares.CORSMiddleware(),
@@ -61,6 +66,9 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 		api.GET("/projects/:id/reminder-schedules", reminderScheduleHandler.GetSchedulesByProject) // Changed :project_id to :id
 		api.PATCH("/reminder-schedules/:id", reminderScheduleHandler.UpdateSchedule)
 		api.DELETE("/reminder-schedules/:id", reminderScheduleHandler.DeleteSchedule)
+
+		// Test hooks
+		api.POST("/hooks/chatwork", hookHandler.ChatworkHook)
 	}
 
 	return router
