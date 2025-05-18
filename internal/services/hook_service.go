@@ -88,7 +88,7 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 			value = convertTimestamps(value)
 
 			icon := getFieldIcon(field.Name)
-			builder.WriteString(fmt.Sprintf("%s **%s**: %s\n", icon, field.Name, value))
+			builder.WriteString(fmt.Sprintf("%s %s: %s\n", icon, field.Name, value))
 		}
 
 		// Footer
@@ -105,6 +105,10 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 // Add icons to fields
 func getFieldIcon(name string) string {
 	switch strings.ToLower(name) {
+	case "status":
+		return "✅"
+	case "author":
+		return "👤"
 	case "project":
 		return "📦"
 	case "environment":
@@ -116,7 +120,7 @@ func getFieldIcon(name string) string {
 	case "time":
 		return "🕒"
 	default:
-		return "●"
+		return "📊"
 	}
 }
 
@@ -128,6 +132,7 @@ func convertDiscordIconsToChatwork(input string) string {
 		":warning:", "⚠️",
 		":information_source:", "ℹ️",
 		":cross_mark:", "❌",
+		"Link:", "", // Remove "Link:" prefix
 	)
 	return replacer.Replace(input)
 }
