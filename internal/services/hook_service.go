@@ -68,33 +68,56 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 	for _, embed := range payload.Embeds {
 		builder.WriteString("[info]")
 
-		// Title
+		// Title with removed emojis replaced
 		title := removeDiscordIcons(embed.Title)
 		if title != "" {
-			builder.WriteString("[title]" + title + "[/title]\n")
+			builder.WriteString("[title]" + strings.TrimSpace(title) + "[/title]\n")
 		}
 
 		// Description
 		if embed.Description != "" {
-			builder.WriteString(convertDiscordIconsToChatwork(embed.Description) + "\n")
+			description := convertMarkdownLinks(embed.Description)
+			description = convertDiscordIconsToChatwork(description)
+			description = strings.Replace(description, "Open application", "🔗 Application URL", -1)
+			builder.WriteString(description + "\n\n")
 		}
 
-		// Fields
+		// Field section
 		for _, field := range embed.Fields {
-			fieldValue := convertMarkdownLinks(field.Value)
-			fieldValue = convertTimestamps(fieldValue)
-			builder.WriteString(fmt.Sprintf("● %s: %s\n", field.Name, fieldValue))
+			value := convertMarkdownLinks(field.Value)
+			value = convertTimestamps(value)
+
+			icon := getFieldIcon(field.Name)
+			builder.WriteString(fmt.Sprintf("%s **%s**: %s\n", icon, field.Name, value))
 		}
 
-		// Footer - now plain text under a horizontal rule
+		// Footer
 		if embed.Footer.Text != "" {
-			builder.WriteString("[hr]\n" + embed.Footer.Text + "\n")
+			builder.WriteString("\n[hr]\n" + embed.Footer.Text + "\n")
 		}
 
 		builder.WriteString("[/info]\n\n")
 	}
 
 	return builder.String()
+}
+
+// Add icons to fields
+func getFieldIcon(name string) string {
+	switch strings.ToLower(name) {
+	case "project":
+		return "📦"
+	case "environment":
+		return "🌍"
+	case "name":
+		return "📛"
+	case "deployment logs":
+		return "📄"
+	case "time":
+		return "🕒"
+	default:
+		return "●"
+	}
 }
 
 // move emoji Discord to icon Chatwork
