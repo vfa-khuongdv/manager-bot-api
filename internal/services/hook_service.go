@@ -78,7 +78,7 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 		if embed.Description != "" {
 			description := convertMarkdownLinks(embed.Description)
 			description = convertDiscordIconsToChatwork(description)
-			description = strings.Replace(description, "Link: ", "", -1)
+			description = strings.Replace(description, "Link:", "", -1)
 			description = strings.Replace(description, "Open application", "🔗 Application URL", -1)
 			builder.WriteString(description + "\n\n")
 		}
