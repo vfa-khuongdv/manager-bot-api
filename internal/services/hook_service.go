@@ -78,7 +78,6 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 		if embed.Description != "" {
 			description := convertMarkdownLinks(embed.Description)
 			description = convertDiscordIconsToChatwork(description)
-			description = strings.Replace(description, "Link:", "", -1)
 			description = strings.Replace(description, "Open application", "🔗 Application URL", -1)
 			builder.WriteString(description + "\n\n")
 		}
@@ -87,6 +86,7 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 		for _, field := range embed.Fields {
 			value := convertMarkdownLinks(field.Value)
 			value = convertTimestamps(value)
+			value = convertValueToChatwork(value)
 
 			icon := getFieldIcon(field.Name)
 			builder.WriteString(fmt.Sprintf("%s %s: %s\n", icon, field.Name, value))
@@ -133,6 +133,14 @@ func convertDiscordIconsToChatwork(input string) string {
 		":warning:", "⚠️",
 		":information_source:", "ℹ️",
 		":cross_mark:", "❌",
+	)
+	return replacer.Replace(input)
+}
+
+// convert Discord message to Chatwork format
+func convertValueToChatwork(input string) string {
+	replacer := strings.NewReplacer(
+		"Link:", "",
 	)
 	return replacer.Replace(input)
 }
