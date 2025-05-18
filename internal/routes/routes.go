@@ -35,8 +35,9 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 
 	// Hook handler
 	chatworkService := services.NewChatworkService()
+	hookService := services.NewHookService(chatworkService)
 
-	hookHandler := handlers.NewHookHandler(chatworkService)
+	hookHandler := handlers.NewHookHandler(chatworkService, hookService)
 
 	// Add middleware for CORS and logging
 	router.Use(

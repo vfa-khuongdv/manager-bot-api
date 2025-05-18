@@ -8,19 +8,35 @@ import (
 )
 
 type HookHandler struct {
-	cw services.IChatworkService
+	cw      services.IChatworkService
+	service services.IHookService
 }
 
-func NewHookHandler(cw services.IChatworkService) *HookHandler {
+func NewHookHandler(cw services.IChatworkService, service services.IHookService) *HookHandler {
 	return &HookHandler{
-		cw: cw,
+		cw:      cw,
+		service: service,
 	}
 }
 
 func (h *HookHandler) ChatworkHook(ctx *gin.Context) {
-	// print the request body
-	// print the query params
-	logger.Infof("Request Body: %s", ctx.Request.Body)
-	logger.Infof("Query Params: %v", ctx.Request.URL.Query())
+	var payload services.DiscordPayload
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("Failed to bind JSON: %v", err)
+		utils.RespondWithError(ctx, 400, err)
+		return
+	}
+
+	logger.Infof("Received payload: %+v", payload)
+
+	// Send the message to Chatwork
+	err := h.service.ChatworkHook(payload)
+	if err != nil {
+		logger.Errorf("Failed to send message to Chatwork: %v", err)
+		utils.RespondWithError(ctx, 500, err)
+		return
+	}
+
 	utils.RespondWithOK(ctx, 200, gin.H{"status": "ok"})
 }
