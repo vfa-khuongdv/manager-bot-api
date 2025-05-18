@@ -69,7 +69,7 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 		builder.WriteString("[info]")
 
 		// Title
-		title := convertDiscordIconsToChatwork(embed.Title)
+		title := removeDiscordIcons(embed.Title)
 		if title != "" {
 			builder.WriteString("[title]" + title + "[/title]\n")
 		}
@@ -97,7 +97,7 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 	return builder.String()
 }
 
-// Chuyển emoji Discord sang icon Chatwork
+// move emoji Discord to icon Chatwork
 func convertDiscordIconsToChatwork(input string) string {
 	replacer := strings.NewReplacer(
 		":white_check_mark:", "✅",
@@ -109,12 +109,26 @@ func convertDiscordIconsToChatwork(input string) string {
 	return replacer.Replace(input)
 }
 
-// Chuyển markdown [Link](url) → Link: url
+// Remove icon Discord
+func removeDiscordIcons(input string) string {
+	replacer := strings.NewReplacer(
+		":white_check_mark:", "",
+		":x:", "",
+		":warning:", "",
+		":information_source:", "",
+		":cross_mark:", "",
+	)
+	return replacer.Replace(input)
+}
+
+// Move markdown [Link](url) → Link: url
 func convertMarkdownLinks(input string) string {
 	re := regexp.MustCompile(`\[(.*?)\]\((.*?)\)`)
 	return re.ReplaceAllString(input, "$1: $2")
 }
 
+// Convert Discord timestamps to a readable format
+// Example: <t:1234567890:R> → 2006-01-02 15:04:05
 func convertTimestamps(input string) string {
 	re := regexp.MustCompile(`<t:(\d+):R>`)
 	return re.ReplaceAllStringFunc(input, func(m string) string {
