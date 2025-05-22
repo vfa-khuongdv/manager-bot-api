@@ -18,7 +18,13 @@ func LogMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var requestBody interface{}
 		const maxBodySize = 1 << 20 // Limit body size to 1 MB
-		sensitiveKeys := []string{"password", "api-key", "token", "email"}
+		sensitiveKeys := []string{
+			"password",
+			"api-key",
+			"token",
+			"email",
+			"secret_key",
+		}
 
 		timeStart := time.Now()
 
