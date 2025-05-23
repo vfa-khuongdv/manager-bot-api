@@ -70,6 +70,7 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 
 		// Test hooks
 		api.POST("/hooks/chatwork", hookHandler.ChatworkHook)
+		api.POST("/hooks/slack", hookHandler.SlackHook)
 	}
 
 	return router

@@ -1,7 +1,10 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,6 +16,7 @@ import (
 
 type IHookService interface {
 	ChatworkHook(payload DiscordPayload) error
+	SlackHook(payload SlackPayload) error
 }
 
 type HookService struct {
@@ -38,6 +42,32 @@ type DiscordEmbed struct {
 
 type DiscordPayload struct {
 	Embeds []DiscordEmbed `json:"embeds"`
+}
+
+type SlackPayload struct {
+	Text        string       `json:"text"`
+	Blocks      []Block      `json:"blocks,omitempty"`
+	Attachments []Attachment `json:"attachments,omitempty"`
+}
+
+type Attachment struct {
+	Color  string  `json:"color,omitempty"`
+	Blocks []Block `json:"blocks,omitempty"`
+}
+
+type Block struct {
+	Type string    `json:"type"`
+	Text *TextData `json:"text,omitempty"`
+}
+
+type TextData struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type Info struct {
+	Title string `json:"title"`
+	Text  string `json:"text"`
 }
 
 func NewHookService(cw IChatworkService) *HookService {
@@ -94,7 +124,8 @@ func ConvertDiscordPayloadToChatwork(payload DiscordPayload) string {
 
 		// Footer
 		if embed.Footer.Text != "" {
-			builder.WriteString("\n[hr]\n" + embed.Footer.Text + "\n")
+			builder.WriteString("\n[hr]\n")
+			builder.WriteString("From Discord, sending all our love 💖🤝💬\n")
 		}
 
 		builder.WriteString("[/info]\n\n")
@@ -179,4 +210,178 @@ func convertTimestamps(input string) string {
 		t := time.Unix(unixTime, 0).Local()
 		return t.Format("2006-01-02 15:04:05")
 	})
+}
+
+func (h *HookService) SlackHook(payload SlackPayload) error {
+	chatworkString := ConvertSlackPayloadToChatwork(payload)
+	logger.Infof("Converted Chatwork message: %s", chatworkString)
+
+	ROOM_ID := utils.GetEnv("CHATWORK_ROOM_ID", "")
+	API_KEY := utils.GetEnv("CHATWORK_API_TOKEN", "")
+
+	err := h.cw.SendMessage(API_KEY, ROOM_ID, chatworkString)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ConvertSlackPayloadToChatwork(payload SlackPayload) string {
+	var builder strings.Builder
+
+	builder.WriteString("[info]\n")
+
+	if payload.Text != "" {
+		builder.WriteString("[title]" + payload.Text + "[/title]\n")
+	}
+
+	// Handle attachments
+	for _, attachment := range payload.Attachments {
+		for _, block := range attachment.Blocks {
+			if block.Type == "section" {
+				results := splitStringToInfo(block.Text.Text)
+				for _, info := range results {
+					title := addIconsToFields(info.Title)
+
+					if info.Text == "" {
+						builder.WriteString(info.Text + "\n")
+					} else if info.Title == "" {
+						builder.WriteString(info.Text + "\n")
+					} else {
+						builder.WriteString(title + ": " + info.Text + "\n")
+					}
+				}
+				builder.WriteString("[hr]\n")
+
+			}
+		}
+	}
+
+	// Handle blocks
+	for _, block := range payload.Blocks {
+		if block.Type == "section" {
+			results := splitStringToInfo(block.Text.Text)
+			for _, info := range results {
+				title := addIconsToFields(info.Title)
+				if info.Text == "" {
+					builder.WriteString(info.Text + "\n")
+				} else if info.Title == "" {
+					builder.WriteString(info.Text + "\n")
+				} else {
+					builder.WriteString(title + ": " + info.Text + "\n")
+				}
+			}
+			// if the results have any item and the title contains "deployment", add the time
+			if len(results) > 0 && strings.Contains(strings.ToLower(results[0].Title), "deployment") {
+				builder.WriteString("🕒 Time: " + time.Now().Format("2006-01-02 15:04:05") + "\n")
+			}
+
+		}
+	}
+
+	// Write footer
+	builder.WriteString("\n[hr]\n")
+	builder.WriteString("From Slack, sending all our love 💖🤝💬\n")
+	builder.WriteString("[/info]\n")
+
+	return builder.String()
+}
+
+func splitStringToInfo(text string) []Info {
+	text = strings.ReplaceAll(text, `\n`, "\n")
+	lines := strings.Split(text, "\n")
+
+	reMarkdownLink := regexp.MustCompile(`(?i)<([^|>]+)\|([^>]+)>`)
+	reKeyCandidate := regexp.MustCompile(`^\*?[\w\s\-]+:\s*`)
+	reKeyValue := regexp.MustCompile(`^\*?([^:]+?)\*?:\s*(.+)$`)
+
+	var results []Info
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		if matches := reMarkdownLink.FindStringSubmatch(line); len(matches) == 3 {
+			results = append(results, Info{
+				Title: clean(matches[2]),
+				Text:  clean(matches[1]),
+			})
+			continue
+		}
+
+		if reKeyCandidate.MatchString(line) {
+			if matches := reKeyValue.FindStringSubmatch(line); len(matches) == 3 {
+				textValue := matches[2]
+				textValue = strings.TrimPrefix(textValue, "* ")
+				results = append(results, Info{
+					Title: clean(matches[1]),
+					Text:  textValue,
+				})
+				continue
+			}
+		}
+
+		results = append(results, Info{
+			Title: "",
+			Text:  "💬 " + line,
+		})
+	}
+
+	return results
+}
+
+func clean(text string) string {
+	return strings.Trim(strings.TrimSpace(text), "* ")
+}
+
+func addIconsToFields(input string) string {
+	replacer := strings.NewReplacer(
+		"Application URL", "🔗 URL",
+		"Project", "📦 Project",
+		"Environment", "🌍 Environment",
+		"Deployment Logs", "📄 Deployment Logs",
+		"Frequency", "🔄 Frequency",
+	)
+	return replacer.Replace(input)
+}
+
+func (h *HookService) SendToSlack(payload SlackPayload) error {
+	webhookURL := utils.GetEnv("SLACK_WEBHOOK_URL", "")
+	if webhookURL == "" {
+		return fmt.Errorf("slack webhook URL is not configured")
+	}
+
+	message := map[string]interface{}{
+		"text":   payload.Blocks[0].Text.Text,
+		"blocks": payload.Blocks,
+	}
+
+	jsonData, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Slack payload: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", webhookURL, strings.NewReader(string(jsonData)))
+	if err != nil {
+		return fmt.Errorf("failed to create Slack request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send Slack request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to send message to Slack: received status %d, response: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }

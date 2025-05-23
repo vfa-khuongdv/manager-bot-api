@@ -40,3 +40,21 @@ func (h *HookHandler) ChatworkHook(ctx *gin.Context) {
 
 	utils.RespondWithOK(ctx, 200, gin.H{"status": "ok"})
 }
+
+func (h *HookHandler) SlackHook(ctx *gin.Context) {
+	var payload services.SlackPayload
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("Failed to bind JSON: %v", err)
+		utils.RespondWithError(ctx, 400, err)
+		return
+	}
+	logger.Infof("Received payload: %+v", payload)
+	// Send the message to Chatwork
+	err := h.service.SlackHook(payload)
+	if err != nil {
+		logger.Errorf("Failed to send message to Chatwork: %v", err)
+		utils.RespondWithError(ctx, 500, err)
+		return
+	}
+	utils.RespondWithOK(ctx, 200, gin.H{"status": "ok"})
+}
