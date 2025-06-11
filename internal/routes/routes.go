@@ -48,6 +48,7 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 	)
 
 	router.GET("/healthz", handlers.HealthCheck)
+	router.GET("/readyz", handlers.Test)
 
 	// Setup API routes
 	api := router.Group("/api/v1")
