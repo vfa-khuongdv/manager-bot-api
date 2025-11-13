@@ -50,6 +50,35 @@ Before getting started, ensure that you have the following installed:
 
 ## Setup Instructions
 
+### Quick HTTPS Setup (Recommended)
+
+For a quick setup with HTTPS enabled:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/yourproject.git
+cd yourproject
+
+# Run the setup script
+./setup-https.sh
+```
+
+This script will:
+- Copy `.env.example` to `.env` if it doesn't exist
+- Generate self-signed SSL certificates for localhost
+- Build and start all services with HTTPS enabled
+
+After setup, you can access:
+- 🌐 **HTTPS API**: https://localhost
+- 🔗 **HTTP API**: http://localhost (redirects to HTTPS)
+- 🗄️ **MySQL**: localhost:3306
+- 🚀 **Redis**: localhost:6379
+- 📊 **phpMyAdmin**: http://localhost:8080
+
+⚠️ **Note**: You may see a security warning in your browser because we're using self-signed certificates. Click 'Advanced' and 'Proceed to localhost' to continue.
+
+### Manual Setup
+
 ### 1. Clone the repository
 
 ```bash
