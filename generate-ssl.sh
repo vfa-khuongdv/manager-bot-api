@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Create certs directory if it doesn't exist
+mkdir -p certs
+
 # Create self-signed SSL certificate for localhost
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout certs/localhost.key \
