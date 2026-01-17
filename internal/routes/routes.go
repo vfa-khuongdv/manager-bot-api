@@ -18,26 +18,27 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 	// Initialize the default Gin router
 	router := gin.Default()
 
-	// Project
+	// Repository
 	projectRepo := repositories.NewProjectRepository(db)
-	projectService := services.NewProjectService(projectRepo)
-	projectHandler := handlers.NewProjectHandler(projectService, cronService)
-
-	// Reminder
 	reminderScheduleRepo := repositories.NewReminderScheduleRepository(db)
-	reminderScheduleService := services.NewReminderScheduleService(reminderScheduleRepo)
+	scheduleLogRepo := repositories.NewScheduleLogRepository(db)
 
+	// Services
+	projectService := services.NewProjectService(projectRepo)
+	reminderScheduleService := services.NewReminderScheduleService(reminderScheduleRepo)
+	chatworkService := services.NewChatworkService()
+	hookService := services.NewHookService(chatworkService)
+	scheduleLogService := services.NewScheduleLogService(scheduleLogRepo)
+
+	// Handlers
+	projectHandler := handlers.NewProjectHandler(projectService, cronService)
+	hookHandler := handlers.NewHookHandler(chatworkService, hookService)
 	reminderScheduleHandler := handlers.NewReminderScheduleHandler(
 		reminderScheduleService,
 		projectService,
 		cronService,
 	)
-
-	// Hook handler
-	chatworkService := services.NewChatworkService()
-	hookService := services.NewHookService(chatworkService)
-
-	hookHandler := handlers.NewHookHandler(chatworkService, hookService)
+	scheduleLogHandler := handlers.NewScheduleLogHandler(scheduleLogService)
 
 	// Add middleware for CORS and logging
 	router.Use(
@@ -47,6 +48,7 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 		middlewares.EmptyBodyMiddleware(),
 	)
 
+	// Health check routes
 	router.GET("/healthz", handlers.HealthCheck)
 	router.GET("/readyz", handlers.Test)
 
@@ -54,7 +56,6 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 	api := router.Group("/api/v1")
 	{
 		// Project routes
-
 		api.GET("/projects", projectHandler.GetAll)
 		api.POST("/projects", projectHandler.Create)
 		api.GET("/projects/:id", projectHandler.GetByID)
@@ -62,16 +63,19 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 		api.DELETE("/projects/:id", projectHandler.Delete)
 		api.POST("/projects/verify-access", projectHandler.VerifyAccess)
 
-		// Reminder schedule routes
+		// Reminder routes
 		api.POST("/reminder-schedules", reminderScheduleHandler.CreateSchedule)
 		api.GET("/reminder-schedules/:id", reminderScheduleHandler.GetSchedule)                    // This :id is for the reminder schedule itself
 		api.GET("/projects/:id/reminder-schedules", reminderScheduleHandler.GetSchedulesByProject) // Changed :project_id to :id
 		api.PATCH("/reminder-schedules/:id", reminderScheduleHandler.UpdateSchedule)
 		api.DELETE("/reminder-schedules/:id", reminderScheduleHandler.DeleteSchedule)
 
-		// Test hooks
+		// Hook routes
 		api.POST("/hooks/chatwork", hookHandler.ChatworkHook)
 		api.POST("/hooks/slack", hookHandler.SlackHook)
+
+		// Dashboard routes
+		api.GET("/dashboard", scheduleLogHandler.GetDashboard)
 	}
 
 	return router
