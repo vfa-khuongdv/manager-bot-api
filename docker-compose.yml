@@ -15,8 +15,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - network
     restart: unless-stopped
@@ -56,19 +54,6 @@ services:
       test: [ "CMD", "mysqladmin", "ping", "-p${DB_PASSWORD}" ]
       retries: 3
       timeout: 5s
-  redis:
-    image: 'redis:alpine'
-    container_name: manager-bot-redis
-    ports:
-      - '${FORWARD_REDIS_PORT:-6379}:6379'
-    volumes:
-      - 'redis:/data'
-    networks:
-      - network
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      retries: 3
-      timeout: 5s
   phpmyadmin:
     depends_on:
       - mysql
@@ -87,6 +72,4 @@ networks:
     driver: bridge
 volumes:
   mysql:
-    driver: local
-  redis:
     driver: local

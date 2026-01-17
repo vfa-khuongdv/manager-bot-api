@@ -72,11 +72,24 @@ func (cs *CronService) Register(s *models.ReminderSchedule) {
 		logger.Infof("[Reminder #%d] Attempting to send message. RoomID: '%s', Token (masked): '%s', Message: '%s'", s.ID, s.ChatworkRoomID, maskedToken, s.Message)
 
 		err := cs.cw.SendMessage(s.ChatworkToken, s.ChatworkRoomID, s.Message)
+
+		logEntry := models.ScheduleLog{
+			ProjectID:  s.ProjectID,
+			ScheduleID: s.ID,
+			Status:     "success",
+		}
+
 		if err != nil {
 			// Log detailed error. The error 'err' from cs.cw.SendMessage should ideally include details from Chatwork API.
 			logger.Errorf("[Reminder #%d] Error sending message to RoomID '%s'. Token (masked): '%s', Message: '%s'. Error: %v", s.ID, s.ChatworkRoomID, maskedToken, s.Message, err)
+			logEntry.Status = "error"
+			logEntry.ErrorMessage = err.Error()
 		} else {
 			logger.Infof("[Reminder #%d] Successfully sent message to room %s", s.ID, s.ChatworkRoomID)
+		}
+
+		if dbErr := cs.db.Create(&logEntry).Error; dbErr != nil {
+			logger.Errorf("[Reminder #%d] Error recording schedule log: %v", s.ID, dbErr)
 		}
 	})
 
