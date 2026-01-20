@@ -295,7 +295,7 @@ func (handler *ReminderScheduleHandler) UpdateSchedule(ctx *gin.Context) {
 		ChatworkRoomID string `json:"chatwork_room_id"`
 		ChatworkToken  string `json:"chatwork_token"`
 		Message        string `json:"message"`
-		IsActive       *bool  `json:"is_active"`
+		IsActive       *bool  `json:"active"`
 	}
 
 	// Bind and validate JSON request body
