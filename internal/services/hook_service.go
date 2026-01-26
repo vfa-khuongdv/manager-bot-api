@@ -46,12 +46,16 @@ type DiscordPayload struct {
 
 type SlackPayload struct {
 	Text        string       `json:"text"`
+	Username    string       `json:"username,omitempty"`
 	Blocks      []Block      `json:"blocks,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
 type Attachment struct {
 	Color  string  `json:"color,omitempty"`
+	Title  string  `json:"title,omitempty"`
+	Text   string  `json:"text,omitempty"`
+	Footer string  `json:"footer,omitempty"`
 	Blocks []Block `json:"blocks,omitempty"`
 }
 
@@ -238,6 +242,32 @@ func ConvertSlackPayloadToChatwork(payload SlackPayload) string {
 
 	// Handle attachments
 	for _, attachment := range payload.Attachments {
+		// New format: attachments with title, text, footer fields
+		if attachment.Title != "" || attachment.Text != "" {
+			if attachment.Title != "" {
+				builder.WriteString("[title]" + attachment.Title + "[/title]\n")
+			}
+			if attachment.Text != "" {
+				// Parse the text to extract key-value pairs
+				results := splitStringToInfo(attachment.Text)
+				for _, info := range results {
+					title := addIconsToFields(info.Title)
+					if info.Text == "" {
+						builder.WriteString(info.Text + "\n")
+					} else if info.Title == "" {
+						builder.WriteString(info.Text + "\n")
+					} else {
+						builder.WriteString(title + ": " + info.Text + "\n")
+					}
+				}
+			}
+			if attachment.Footer != "" {
+				builder.WriteString("\n📌 " + attachment.Footer + "\n")
+			}
+			builder.WriteString("[hr]\n")
+		}
+
+		// Old format: attachments with blocks
 		for _, block := range attachment.Blocks {
 			if block.Type == "section" {
 				results := splitStringToInfo(block.Text.Text)
@@ -344,6 +374,7 @@ func addIconsToFields(input string) string {
 		"Environment", "🌍 Environment",
 		"Deployment Logs", "📄 Deployment Logs",
 		"Frequency", "🔄 Frequency",
+		"Database", "💾 Database",
 	)
 	return replacer.Replace(input)
 }
