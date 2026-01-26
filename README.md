@@ -208,6 +208,9 @@ JWT Configuration:
 - `JWT_SECRET_KEY` - Secret key for JWT token generation
 - `JWT_EXPIRES_IN` - JWT token expiration time (e.g., "24h")
 
+API Authentication:
+- `API_KEY` - Secret API key for authenticating API requests (required for all API endpoints)
+
 Server Configuration:
 - `SERVER_PORT` - Port number for the application server (default: 3000)
 - `SERVER_MODE` - Server mode ("development" or "production")
@@ -225,6 +228,37 @@ Redis Configuration (for caching and session management):
 - `REDIS_PASSWORD` - Redis password (if any)
 
 These can be set in the `.env` file or passed directly as environment variables. A sample `.env.example` file is provided in the repository.
+
+## API Authentication
+
+All API endpoints under `/api/v1/*` require API key authentication. You can provide the API key in two ways:
+
+### 1. Using HTTP Header (Recommended)
+
+```bash
+curl -H "X-API-Key: your-secret-api-key-here" http://localhost:3000/api/v1/projects
+```
+
+### 2. Using Query Parameter
+
+```bash
+curl "http://localhost:3000/api/v1/projects?api_key=your-secret-api-key-here"
+```
+
+### Setting up API Key
+
+1. Set the `API_KEY` environment variable in your `.env` file:
+   ```
+   API_KEY=your-secret-api-key-here
+   ```
+
+2. Restart the application to apply the changes
+
+3. Include the API key in all requests to protected endpoints
+
+**Note**: If `API_KEY` is not set in the environment, the middleware will skip validation (development mode). Always set a strong API key in production.
+
+## API Documentation
 
 Check the `docs/api_spec.md` for a detailed API specification.
 
