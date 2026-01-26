@@ -71,13 +71,13 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 		api.PATCH("/reminder-schedules/:id", reminderScheduleHandler.UpdateSchedule)
 		api.DELETE("/reminder-schedules/:id", reminderScheduleHandler.DeleteSchedule)
 
-		// Hook routes
-		api.POST("/hooks/chatwork", hookHandler.ChatworkHook)
-		api.POST("/hooks/slack", hookHandler.SlackHook)
-
 		// Dashboard routes
 		api.GET("/dashboard", scheduleLogHandler.GetDashboard)
 	}
+
+	// Hook routes
+	api.POST("/hooks/chatwork", hookHandler.ChatworkHook)
+	api.POST("/hooks/slack", hookHandler.SlackHook)
 
 	return router
 }
