@@ -2,11 +2,16 @@ package repositories
 
 import (
 	"github.com/vfa-khuongdv/golang-cms/internal/models"
+	"github.com/vfa-khuongdv/golang-cms/internal/utils"
 	"gorm.io/gorm"
 )
 
 type IScheduleLogRepository interface {
 	GetDashboardData() (*models.DashboardData, error)
+	ListAll(filters map[string]interface{}, paging *utils.Paging) ([]models.RunLogV2, int64, error)
+	ListByProject(projectID uint, filters map[string]interface{}, paging *utils.Paging) ([]models.RunLogV2, int64, error)
+	ListBySchedule(scheduleID uint, filters map[string]interface{}, paging *utils.Paging) ([]models.RunLogV2, int64, error)
+	GetV2Summary() (*models.V2DashboardSummary, error)
 }
 
 type ScheduleLogRepository struct {
@@ -50,7 +55,6 @@ func (r *ScheduleLogRepository) GetDashboardData() (*models.DashboardData, error
 	data.ProjectSummaries = summaries
 
 	// Get trend data for the past 7 days
-	// If data for a day is missing, it should show 0 executions
 	var trends []models.TrendDataPoint
 	trendQuery := `
 		WITH RECURSIVE date_series AS (
@@ -75,4 +79,86 @@ func (r *ScheduleLogRepository) GetDashboardData() (*models.DashboardData, error
 	data.TrendData = trends
 
 	return &data, nil
+}
+
+// buildLogQuery builds a base query for schedule_logs joined with projects and schedules
+func (r *ScheduleLogRepository) buildLogQuery(filters map[string]interface{}) *gorm.DB {
+	q := r.db.Table("schedule_logs sl").
+		Select("sl.id, sl.schedule_id, rs.name as name, p.name as project_name, sl.status, sl.created_at as timestamp, sl.error_message as message").
+		Joins("LEFT JOIN projects p ON p.id = sl.project_id").
+		Joins("LEFT JOIN reminder_schedules rs ON rs.id = sl.schedule_id").
+		Where("sl.deleted_at IS NULL")
+
+	if status, ok := filters["status"]; ok && status != "" {
+		q = q.Where("sl.status = ?", status)
+	}
+	if from, ok := filters["from"]; ok && from != "" {
+		q = q.Where("DATE(sl.created_at) >= ?", from)
+	}
+	if to, ok := filters["to"]; ok && to != "" {
+		q = q.Where("DATE(sl.created_at) <= ?", to)
+	}
+	return q
+}
+
+func scanLogs(q *gorm.DB, paging *utils.Paging) ([]models.RunLogV2, int64, error) {
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (paging.Page - 1) * paging.Limit
+	var logs []models.RunLogV2
+	if err := q.Order("sl.created_at DESC").Offset(offset).Limit(paging.Limit).Scan(&logs).Error; err != nil {
+		return nil, 0, err
+	}
+	return logs, total, nil
+}
+
+// ListAll returns all run logs with optional filters
+func (r *ScheduleLogRepository) ListAll(filters map[string]interface{}, paging *utils.Paging) ([]models.RunLogV2, int64, error) {
+	return scanLogs(r.buildLogQuery(filters), paging)
+}
+
+// ListByProject returns run logs scoped to a project
+func (r *ScheduleLogRepository) ListByProject(projectID uint, filters map[string]interface{}, paging *utils.Paging) ([]models.RunLogV2, int64, error) {
+	q := r.buildLogQuery(filters).Where("sl.project_id = ?", projectID)
+	return scanLogs(q, paging)
+}
+
+// ListBySchedule returns run logs scoped to a schedule
+func (r *ScheduleLogRepository) ListBySchedule(scheduleID uint, filters map[string]interface{}, paging *utils.Paging) ([]models.RunLogV2, int64, error) {
+	q := r.buildLogQuery(filters).Where("sl.schedule_id = ?", scheduleID)
+	return scanLogs(q, paging)
+}
+
+// GetV2Summary returns aggregated stats for V2 dashboard
+func (r *ScheduleLogRepository) GetV2Summary() (*models.V2DashboardSummary, error) {
+	var summary models.V2DashboardSummary
+
+	if err := r.db.Model(&models.Project{}).Where("status = ?", "active").Count(&summary.ActiveProjects).Error; err != nil {
+		return nil, err
+	}
+	if err := r.db.Model(&models.Project{}).Where("status = ?", "inactive").Count(&summary.InactiveProjects).Error; err != nil {
+		return nil, err
+	}
+	if err := r.db.Model(&models.ReminderSchedule{}).Count(&summary.TotalSchedules).Error; err != nil {
+		return nil, err
+	}
+	if err := r.db.Model(&models.ReminderSchedule{}).Where("active = ?", true).Count(&summary.ActiveSchedules).Error; err != nil {
+		return nil, err
+	}
+	if err := r.db.Model(&models.ScheduleLog{}).Where("status = ?", "success").Count(&summary.SuccessRuns).Error; err != nil {
+		return nil, err
+	}
+	if err := r.db.Model(&models.ScheduleLog{}).Where("status != ?", "success").Count(&summary.FailedRuns).Error; err != nil {
+		return nil, err
+	}
+
+	total := summary.SuccessRuns + summary.FailedRuns
+	if total > 0 {
+		summary.SuccessRate = float64(summary.SuccessRuns) / float64(total) * 100
+	}
+
+	return &summary, nil
 }

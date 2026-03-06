@@ -10,6 +10,7 @@ type IReminderScheduleRepository interface {
 	GetAll(paging *utils.Paging) ([]models.ReminderSchedule, error)
 	GetByID(id uint) (*models.ReminderSchedule, error)
 	GetByProjectID(projectID uint) ([]models.ReminderSchedule, error)
+	GetByProjectIDPaged(projectID uint, status string, paging *utils.Paging) ([]models.ReminderSchedule, int64, error)
 	Create(schedule *models.ReminderSchedule) error
 	Update(schedule *models.ReminderSchedule) error
 	Delete(schedule *models.ReminderSchedule) error
@@ -135,4 +136,28 @@ func (repo *ReminderScheduleRepository) GetActiveSchedules() ([]models.ReminderS
 //   - error: nil if successful, error otherwise
 func (repo *ReminderScheduleRepository) UpdateActiveStatus(id uint, active bool) error {
 	return repo.db.Model(&models.ReminderSchedule{}).Where("id = ?", id).Update("active", active).Error
+}
+
+// GetByProjectIDPaged retrieves schedules for a project with optional status filter and pagination
+func (repo *ReminderScheduleRepository) GetByProjectIDPaged(projectID uint, status string, paging *utils.Paging) ([]models.ReminderSchedule, int64, error) {
+	var schedules []models.ReminderSchedule
+
+	q := repo.db.Model(&models.ReminderSchedule{}).Where("project_id = ?", projectID)
+	if status == "active" {
+		q = q.Where("active = ?", true)
+	} else if status == "paused" {
+		q = q.Where("active = ?", false)
+	}
+
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (paging.Page - 1) * paging.Limit
+	if err := q.Preload("Project").Offset(offset).Limit(paging.Limit).Find(&schedules).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return schedules, total, nil
 }

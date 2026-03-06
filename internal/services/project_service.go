@@ -3,10 +3,12 @@ package services
 import (
 	"github.com/vfa-khuongdv/golang-cms/internal/models"
 	"github.com/vfa-khuongdv/golang-cms/internal/repositories"
+	"github.com/vfa-khuongdv/golang-cms/internal/utils"
 )
 
 type IProjectService interface {
 	GetAll() (*[]models.Project, error)
+	GetAllV2(status string, paging *utils.Paging) ([]models.Project, int64, error)
 	GetByID(id uint) (*models.Project, error)
 	Create(project *models.Project) (*models.Project, error)
 	Update(project *models.Project) (*models.Project, error)
@@ -80,4 +82,9 @@ func (s *ProjectService) ValidateSecretKey(id uint, secretKey string) (bool, err
 
 	// Validate the secret key
 	return project.SecretKey == secretKey, nil
+}
+
+// GetAllV2 retrieves projects with optional status filter and pagination for the V2 API
+func (s *ProjectService) GetAllV2(status string, paging *utils.Paging) ([]models.Project, int64, error) {
+	return s.repo.GetAllV2(status, paging)
 }

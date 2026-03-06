@@ -79,5 +79,8 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 	api.POST("/hooks/chatwork", hookHandler.ChatworkHook)
 	api.POST("/hooks/slack", hookHandler.SlackHook)
 
+	// Setup V2 routes
+	SetupV2Routes(router, projectService, reminderScheduleService, scheduleLogService, cronService, chatworkService)
+
 	return router
 }

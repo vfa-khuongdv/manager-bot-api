@@ -38,3 +38,25 @@ type DashboardData struct {
 	ProjectSummaries []ProjectSummary `json:"projectSummaries"`
 	TrendData        []TrendDataPoint `json:"trends"`
 }
+
+// V2DashboardSummary provides aggregated stats for V2 dashboard
+type V2DashboardSummary struct {
+	ActiveProjects   int64   `json:"activeProjects"`
+	InactiveProjects int64   `json:"inactiveProjects"`
+	TotalSchedules   int64   `json:"totalSchedules"`
+	ActiveSchedules  int64   `json:"activeSchedules"`
+	SuccessRuns      int64   `json:"successRuns"`
+	FailedRuns       int64   `json:"failedRuns"`
+	SuccessRate      float64 `json:"successRate"`
+}
+
+// RunLogV2 is the V2 API response shape for a run log entry
+type RunLogV2 struct {
+	ID          uint   `json:"id"`
+	ScheduleID  uint   `json:"scheduleId"`
+	Name        string `json:"name"`
+	ProjectName string `json:"projectName"`
+	Status      string `json:"status"`
+	Timestamp   string `json:"timestamp"`
+	Message     string `json:"message"`
+}

@@ -11,6 +11,7 @@ type IReminderScheduleService interface {
 	GetAll(paging *utils.Paging) ([]models.ReminderSchedule, error)
 	GetByID(id uint) (*models.ReminderSchedule, error)
 	GetByProjectID(projectID uint) ([]models.ReminderSchedule, error)
+	GetByProjectIDPaged(projectID uint, status string, paging *utils.Paging) ([]models.ReminderSchedule, int64, error)
 	Create(schedule *models.ReminderSchedule) error
 	Update(schedule *models.ReminderSchedule) error
 	Delete(id uint) error
@@ -167,4 +168,13 @@ func (service *ReminderScheduleService) ToggleActiveStatus(id uint, active bool)
 		return errors.New(errors.ErrDatabaseUpdate, err.Error())
 	}
 	return nil
+}
+
+// GetByProjectIDPaged retrieves schedules for a project with optional status filter and pagination
+func (service *ReminderScheduleService) GetByProjectIDPaged(projectID uint, status string, paging *utils.Paging) ([]models.ReminderSchedule, int64, error) {
+	schedules, total, err := service.repo.GetByProjectIDPaged(projectID, status, paging)
+	if err != nil {
+		return nil, 0, errors.New(errors.ErrDatabaseQuery, err.Error())
+	}
+	return schedules, total, nil
 }

@@ -10,6 +10,7 @@ import (
 type ReminderSchedule struct {
 	ID             uint           `json:"id"` // JSON tag for ID
 	ProjectID      uint           `json:"projectId" gorm:"column:project_id;not null;index:idx_reminder_project_id"`
+	Name           string         `json:"name" gorm:"column:name;type:varchar(255);not null"`
 	CronExpression string         `json:"cronExpression" gorm:"column:cron_expression;type:varchar(255);not null"`
 	ChatworkRoomID string         `json:"chatworkRoomId" gorm:"column:chatwork_room_id;type:varchar(255);not null"`
 	ChatworkToken  string         `json:"chatworkToken" gorm:"column:chatwork_token;type:varchar(255);not null"`
