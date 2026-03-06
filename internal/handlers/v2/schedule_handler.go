@@ -111,7 +111,7 @@ func (h *ScheduleHandlerV2) Create(c *gin.Context) {
 	}
 
 	if schedule.Active {
-		h.cronService.Register(&schedule)
+		h.cronService.SyncAll()
 	}
 
 	utils.RespondWithOK(c, http.StatusCreated, buildScheduleResponse(&schedule))
@@ -207,11 +207,7 @@ func (h *ScheduleHandlerV2) Update(c *gin.Context) {
 		return
 	}
 
-	if schedule.Active {
-		h.cronService.Register(schedule)
-	} else {
-		h.cronService.Remove(schedule.ID)
-	}
+	h.cronService.SyncAll()
 
 	utils.RespondWithOK(c, http.StatusOK, buildScheduleResponse(schedule))
 }
@@ -244,12 +240,7 @@ func (h *ScheduleHandlerV2) Toggle(c *gin.Context) {
 		return
 	}
 
-	if newActive {
-		schedule.Active = true
-		h.cronService.Register(schedule)
-	} else {
-		h.cronService.Remove(schedule.ID)
-	}
+	h.cronService.SyncAll()
 
 	newStatus := "active"
 	if !newActive {

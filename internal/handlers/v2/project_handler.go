@@ -151,6 +151,8 @@ func (h *ProjectHandlerV2) Update(c *gin.Context) {
 		return
 	}
 
+	h.cronService.SyncAll()
+
 	utils.RespondWithOK(c, http.StatusOK, buildProjectResponse(updated))
 }
 

@@ -120,26 +120,30 @@ func (cs *CronService) Stop() {
 	logger.Info("Cron service stopped")
 }
 
-// SyncAll synchronizes all active reminder schedules from the database
+// 1. Get all active schedules of each project
+// 2. Unregister all existing schedules in the cron service
+// 3. Register all active schedules again (with updated cron expressions or messages)
 func (cs *CronService) SyncAll() {
-	// Un Register all schedules
-	logger.Infof("Unregistering all active reminder schedules")
-	for id := range cs.entries {
-		cs.Remove(id)
-	}
+	logger.Info("Synchronizing all reminder schedules")
 
-	logger.Infof("Registering all active reminder schedules")
-	var schedules []models.ReminderSchedule
-	result := cs.db.Where("active = ?", true).Find(&schedules)
-	if result.Error != nil {
-		logger.Errorf("Error loading reminder schedules: %v\n", result.Error)
+	var projects []models.Project
+	if err := cs.db.Preload("ReminderSchedules", "active = ?", true).Find(&projects).Error; err != nil {
+		logger.Errorf("Error fetching projects for synchronization: %v", err)
 		return
 	}
 
-	for _, s := range schedules {
-		sCopy := s
-		cs.Register(&sCopy) // Register handles locking itself
+	// Unregister all existing schedules
+	for scheduleID := range cs.entries {
+		logger.Infof("Removing existing cron job for schedule ID %d", scheduleID)
+		cs.Remove(scheduleID)
 	}
 
-	logger.Infof("Active schedules: %v\n", cs.entries)
+	// Register all active schedules again
+	for _, project := range projects {
+		for _, schedule := range project.ReminderSchedules {
+			sCopy := schedule
+			logger.Infof("Registering cron job for schedule ID %d (Project: %s, Expression: %s)", schedule.ID, project.Name, schedule.CronExpression)
+			cs.Register(&sCopy)
+		}
+	}
 }
