@@ -42,7 +42,7 @@ func CalculatePagination(page int, limit int) (int, int) {
 func GeneratePagingFromRequest(ctx *gin.Context) *Paging {
 	paging := &Paging{
 		Page:  1,
-		Limit: 10,
+		Limit: 999,
 	}
 
 	if pageStr := ctx.Query("page"); pageStr != "" {
