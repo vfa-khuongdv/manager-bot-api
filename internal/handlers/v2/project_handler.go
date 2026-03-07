@@ -38,8 +38,13 @@ func (h *ProjectHandlerV2) GetAll(c *gin.Context) {
 		return
 	}
 
+	projectResponses := make([]gin.H, 0, len(projects))
+	for i := range projects {
+		projectResponses = append(projectResponses, buildProjectListResponse(&projects[i]))
+	}
+
 	utils.RespondWithOK(c, http.StatusOK, gin.H{
-		"data":  projects,
+		"data":  projectResponses,
 		"total": total,
 		"page":  paging.Page,
 		"limit": paging.Limit,
@@ -241,4 +246,16 @@ func buildProjectResponse(p *models.Project) gin.H {
 		"createdAt":      p.CreatedAt.Format("2006-01-02"),
 		"schedulesCount": schedulesCount,
 	}
+}
+
+func buildProjectListResponse(p *models.Project) gin.H {
+	response := buildProjectResponse(p)
+
+	if p.ReminderSchedules == nil {
+		response["reminder_schedules"] = []models.ReminderSchedule{}
+		return response
+	}
+
+	response["reminder_schedules"] = p.ReminderSchedules
+	return response
 }
