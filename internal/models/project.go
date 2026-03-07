@@ -17,7 +17,7 @@ type Project struct {
 	UpdatedAt   time.Time      `json:"updatedAt"`           // JSON tag for UpdatedAt
 	DeletedAt   gorm.DeletedAt `json:"deletedAt,omitempty"` // JSON tag for DeletedAt
 
-	ReminderSchedules []ReminderSchedule `gorm:"foreignKey:ProjectID" json:"reminder_schedules,omitempty"`
+	ReminderSchedules []ReminderSchedule `gorm:"foreignKey:ProjectID" json:"-"`
 	TotalReminders    int                `gorm:"-" json:"totalReminders"` // gorm:"-": This tag tells GORM (the ORM you're using) to ignore this field during database operations
 	SchedulesCount    int                `gorm:"-" json:"schedulesCount"` // computed count for V2 API
 }
