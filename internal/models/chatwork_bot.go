@@ -70,13 +70,25 @@ type BotDetail struct {
 	RoomsCount  int     `json:"roomsCount"`
 }
 
+// SenderInfo holds the Chatwork profile of the person who sent the friend request.
+type SenderInfo struct {
+	AccountID        int    `json:"accountId"`
+	Name             string `json:"name"`
+	ChatworkID       string `json:"chatworkId"`
+	OrganizationName string `json:"organizationName"`
+	Department       string `json:"department"`
+	AvatarImageURL   string `json:"avatarImageUrl"`
+}
+
 // BotRequestItem is the response item for GET /bot-requests.
 // The ID is encoded as "{dbBotID}_{cwRequestID}" so accept/delete can
 // route to the correct bot API token without a DB lookup table.
 type BotRequestItem struct {
-	ID        string     `json:"id"`
-	BotID     uint       `json:"botId"`
-	BotInfo   *BotDetail `json:"botInfo"`
-	Status    string     `json:"status"`
-	CreatedAt string     `json:"createdAt"`
+	ID         string      `json:"id"`
+	BotID      uint        `json:"botId"`
+	BotInfo    *BotDetail  `json:"botInfo"`
+	SenderInfo *SenderInfo `json:"senderInfo"`
+	Message    string      `json:"message"`
+	Status     string      `json:"status"`
+	CreatedAt  string      `json:"createdAt"`
 }

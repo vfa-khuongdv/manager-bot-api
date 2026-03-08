@@ -118,12 +118,22 @@ func (s *ChatworkBotService) GetBotRequests(status string) ([]models.BotRequestI
 			if status != "" && status != reqStatus {
 				continue
 			}
+			sender := &models.SenderInfo{
+				AccountID:        req.AccountID,
+				Name:             req.Name,
+				ChatworkID:       req.ChatworkID,
+				OrganizationName: req.OrganizationName,
+				Department:       req.Department,
+				AvatarImageURL:   req.AvatarImageURL,
+			}
 			items = append(items, models.BotRequestItem{
-				ID:        fmt.Sprintf("%d_%d", bot.ID, req.RequestID),
-				BotID:     bot.ID,
-				BotInfo:   &botDetail,
-				Status:    reqStatus,
-				CreatedAt: time.Now().UTC().Format(time.RFC3339), // CW API does not return createdAt
+				ID:         fmt.Sprintf("%d_%d", bot.ID, req.RequestID),
+				BotID:      bot.ID,
+				BotInfo:    &botDetail,
+				SenderInfo: sender,
+				Message:    req.Message,
+				Status:     reqStatus,
+				CreatedAt:  time.Now().UTC().Format(time.RFC3339), // CW API does not return createdAt
 			})
 		}
 	}

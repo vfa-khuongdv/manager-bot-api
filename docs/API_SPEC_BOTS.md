@@ -198,6 +198,14 @@ Aggregate all incoming friend requests across every registered bot.
         "description": "Chuyên gửi thông báo Daily Meeting...",
         "roomsCount": 42
       },
+      "senderInfo": {
+        "accountId": 456,
+        "name": "Nguyen Van A",
+        "chatworkId": "nguyenvana",
+        "organizationName": "Company XYZ",
+        "department": "Engineering",
+        "avatarImageUrl": "https://..."
+      },
       "status": "pending",
       "createdAt": "2026-03-08T12:00:00Z"
     }
