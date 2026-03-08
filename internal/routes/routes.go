@@ -30,7 +30,7 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 	chatworkService := services.NewChatworkService()
 	hookService := services.NewHookService(chatworkService)
 	scheduleLogService := services.NewScheduleLogService(scheduleLogRepo)
-	botService := services.NewChatworkBotService(chatworkBotRepo)
+	botService := services.NewChatworkBotService(chatworkBotRepo, reminderScheduleRepo)
 
 	// Handlers
 	projectHandler := handlers.NewProjectHandler(projectService, cronService)

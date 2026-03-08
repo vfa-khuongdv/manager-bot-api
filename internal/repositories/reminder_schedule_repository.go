@@ -16,6 +16,7 @@ type IReminderScheduleRepository interface {
 	Delete(schedule *models.ReminderSchedule) error
 	GetActiveSchedules() ([]models.ReminderSchedule, error)
 	UpdateActiveStatus(id uint, active bool) error
+	ExistsByBotID(botID uint) (bool, error)
 }
 
 type ReminderScheduleRepository struct {
@@ -136,6 +137,16 @@ func (repo *ReminderScheduleRepository) GetActiveSchedules() ([]models.ReminderS
 //   - error: nil if successful, error otherwise
 func (repo *ReminderScheduleRepository) UpdateActiveStatus(id uint, active bool) error {
 	return repo.db.Model(&models.ReminderSchedule{}).Where("id = ?", id).Update("active", active).Error
+}
+
+// ExistsByBotID returns true if any reminder schedule (including soft-deleted ones) references the given bot ID.
+func (repo *ReminderScheduleRepository) ExistsByBotID(botID uint) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.ReminderSchedule{}).Unscoped().Where("bot_id = ?", botID).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // GetByProjectIDPaged retrieves schedules for a project with optional status filter and pagination

@@ -27,14 +27,16 @@ type IChatworkBotService interface {
 }
 
 type ChatworkBotService struct {
-	repo       repositories.IChatworkBotRepository
-	httpClient *http.Client
+	repo         repositories.IChatworkBotRepository
+	scheduleRepo repositories.IReminderScheduleRepository
+	httpClient   *http.Client
 }
 
-func NewChatworkBotService(repo repositories.IChatworkBotRepository) *ChatworkBotService {
+func NewChatworkBotService(repo repositories.IChatworkBotRepository, scheduleRepo repositories.IReminderScheduleRepository) *ChatworkBotService {
 	return &ChatworkBotService{
-		repo:       repo,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		repo:         repo,
+		scheduleRepo: scheduleRepo,
+		httpClient:   &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
@@ -82,9 +84,17 @@ func (s *ChatworkBotService) Create(apiToken string, email *string, description 
 }
 
 // Delete removes a bot from the system by its DB ID.
+// Returns an error if the bot is currently assigned to one or more schedules.
 func (s *ChatworkBotService) Delete(id uint) error {
 	if _, err := s.repo.GetByID(id); err != nil {
 		return fmt.Errorf("bot not found")
+	}
+	inUse, err := s.scheduleRepo.ExistsByBotID(id)
+	if err != nil {
+		return fmt.Errorf("failed to check schedule assignments: %w", err)
+	}
+	if inUse {
+		return fmt.Errorf("bot is assigned to one or more schedules and cannot be deleted")
 	}
 	return s.repo.Delete(id)
 }
