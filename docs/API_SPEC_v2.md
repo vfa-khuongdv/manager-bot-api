@@ -20,41 +20,45 @@ This API powers the **Bot Dashboard Hub** — a management panel for scheduling 
 ## Data Models
 
 ### `Project`
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique identifier (e.g. `p1`) |
-| `name` | `string` | Human-readable project name |
-| `description` | `string` | Short description |
-| `status` | `"active" \| "inactive"` | Whether the project is active |
-| `secretKey` | `string` | Auto-generated key, format: `sk_proj_<12chars>` |
-| `createdAt` | `string` | ISO 8601 date (e.g. `2025-12-01`) |
-| `schedulesCount` | `number` | Count of schedules in this project |
+
+| Field            | Type                     | Description                                     |
+| ---------------- | ------------------------ | ----------------------------------------------- |
+| `id`             | `string`                 | Unique identifier (e.g. `p1`)                   |
+| `name`           | `string`                 | Human-readable project name                     |
+| `description`    | `string`                 | Short description                               |
+| `status`         | `"active" \| "inactive"` | Whether the project is active                   |
+| `secretKey`      | `string`                 | Auto-generated key, format: `sk_proj_<12chars>` |
+| `createdAt`      | `string`                 | ISO 8601 date (e.g. `2025-12-01`)               |
+| `schedulesCount` | `number`                 | Count of schedules in this project              |
 
 ### `Schedule`
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique identifier (e.g. `s1`) |
-| `projectId` | `string` | Reference to parent `Project.id` |
-| `name` | `string` | Human-readable name for schedule |
-| `projectName` | `string` | Denormalized project name for display |
-| `roomId` | `string` | Chatwork room ID to message |
-| `apiKey` | `string` | Chatwork API key (write-only; masked in GET responses as `cwk_***hidden***`) |
-| `cron` | `string` | Cron expression (e.g. `0 2 * * 1-5`) |
-| `message` | `string` | Message body (supports Chatwork markup: `[info]`, `[title]`, `[code]`) |
-| `status` | `"active" \| "paused"` | Whether this schedule is running |
-| `lastRun` | `string \| null` | ISO 8601 datetime of last execution |
-| `lastStatus` | `"success" \| "failed" \| null` | Result of the last run |
-| `createdAt` | `string` | ISO 8601 date |
+
+| Field         | Type                            | Description                                                                                                    |
+| ------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `id`          | `string`                        | Unique identifier (e.g. `s1`)                                                                                  |
+| `projectId`   | `string`                        | Reference to parent `Project.id`                                                                               |
+| `name`        | `string`                        | Human-readable name for schedule                                                                               |
+| `projectName` | `string`                        | Denormalized project name for display                                                                          |
+| `roomId`      | `string`                        | Chatwork room ID to message                                                                                    |
+| `apiKey`      | `string`                        | Chatwork API key (write-only; masked in GET responses as `cwk_***hidden***`). Mutually exclusive with `botId`. |
+| `botId`       | `number \| null`                | Link to a managed `ChatworkBot.id`. If set, the managed bot's token is used.                                   |
+| `cron`        | `string`                        | Cron expression (e.g. `0 2 * * 1-5`)                                                                           |
+| `message`     | `string`                        | Message body (supports Chatwork markup: `[info]`, `[title]`, `[code]`)                                         |
+| `status`      | `"active" \| "paused"`          | Whether this schedule is running                                                                               |
+| `lastRun`     | `string \| null`                | ISO 8601 datetime of last execution                                                                            |
+| `lastStatus`  | `"success" \| "failed" \| null` | Result of the last run                                                                                         |
+| `createdAt`   | `string`                        | ISO 8601 date                                                                                                  |
 
 ### `RunLog`
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique identifier (e.g. `r1`) |
-| `scheduleId` | `string` | Reference to `Schedule.id` |
-| `projectName` | `string` | Denormalized project name |
-| `status` | `"success" \| "failed"` | Result of this run |
-| `timestamp` | `string` | ISO 8601 datetime |
-| `message` | `string` | Human-readable result message |
+
+| Field         | Type                    | Description                   |
+| ------------- | ----------------------- | ----------------------------- |
+| `id`          | `string`                | Unique identifier (e.g. `r1`) |
+| `scheduleId`  | `string`                | Reference to `Schedule.id`    |
+| `projectName` | `string`                | Denormalized project name     |
+| `status`      | `"success" \| "failed"` | Result of this run            |
+| `timestamp`   | `string`                | ISO 8601 datetime             |
+| `message`     | `string`                | Human-readable result message |
 
 ---
 
@@ -92,6 +96,7 @@ List endpoints support optional query params:
 | `limit` | `20` | Items per page (max `100`) |
 
 List response wrapper:
+
 ```json
 {
   "data": [...],
@@ -114,6 +119,7 @@ List response wrapper:
 Authenticate with the admin passcode. Returns a session token.
 
 **Request body:**
+
 ```json
 {
   "passcode": "botadmin2026"
@@ -121,6 +127,7 @@ Authenticate with the admin passcode. Returns a session token.
 ```
 
 **Response `200`:**
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -149,6 +156,7 @@ List all projects.
 **Query params:** `page`, `limit`, `status` (`active | inactive`)
 
 **Response `200`:**
+
 ```json
 {
   "data": [
@@ -175,6 +183,7 @@ List all projects.
 Create a new project. `secretKey` is generated server-side.
 
 **Request body:**
+
 ```json
 {
   "name": "My Bot Project",
@@ -204,6 +213,7 @@ Get a single project by ID.
 Update project metadata. Cannot change `secretKey` via this endpoint.
 
 **Request body (all fields optional):**
+
 ```json
 {
   "name": "Updated Name",
@@ -229,6 +239,7 @@ Delete a project and all its schedules.
 Validate a project's secret key. Used by users to "enter" a project.
 
 **Request body:**
+
 ```json
 {
   "secretKey": "sk_proj_a1b2c3d4e5f6"
@@ -236,6 +247,7 @@ Validate a project's secret key. Used by users to "enter" a project.
 ```
 
 **Response `200`:**
+
 ```json
 {
   "projectId": "p1",
@@ -259,6 +271,7 @@ List all schedules for a project.
 **Query params:** `page`, `limit`, `status` (`active | paused`)
 
 **Response `200`:**
+
 ```json
 {
   "data": [
@@ -269,6 +282,7 @@ List all schedules for a project.
       "projectName": "Daily Standup Reminder",
       "roomId": "123456",
       "apiKey": "cwk_***hidden***",
+      "botId": null,
       "cron": "0 2 * * 1-5",
       "message": "[info][title]🤖 Daily Reminder[/title]...[/info]",
       "status": "active",
@@ -292,11 +306,13 @@ List all schedules for a project.
 Create a new schedule.
 
 **Request body:**
+
 ```json
 {
   "name": "Morning Standup",
   "roomId": "123456",
-  "apiKey": "cwk_xxxxxxxxxxxx",
+  "apiKey": "cwk_xxxxxxxxxxxx", // optional if botId is provided
+  "botId": 1, // optional if apiKey is provided
   "cron": "0 2 * * *",
   "message": "[info][title]🤖 Reminder[/title]Your daily update.[/info]",
   "status": "active"
@@ -314,6 +330,7 @@ Create a new schedule.
 Send a test message to Chatwork using the provided parameters (used by frontend to test before saving, or test an existing schedule).
 
 **Request body:**
+
 ```json
 {
   "roomId": "123456",
@@ -326,6 +343,7 @@ Send a test message to Chatwork using the provided parameters (used by frontend 
 > **Note**: If testing an existing schedule where `apiKey` is masked on the frontend (`cwk_***hidden***`), you **must** supply `scheduleId`. The backend will securely resolve the real API key from the database.
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -334,6 +352,7 @@ Send a test message to Chatwork using the provided parameters (used by frontend 
 ```
 
 **Errors:**
+
 - `400` — Validation failed (missing fields, or `apiKey` masked without `scheduleId`).
 - `404` — `scheduleId` provided but not found.
 - `502` — Failed to send message to Chatwork API.
@@ -353,11 +372,13 @@ Get a single schedule.
 Update a schedule. Omitting `apiKey` leaves the existing key unchanged.
 
 **Request body (all fields optional):**
+
 ```json
 {
   "name": "Updated name",
   "roomId": "654321",
   "apiKey": "cwk_newkey",
+  "botId": 2, // can be set to null to switch back to apiKey
   "cron": "0 3 * * *",
   "message": "Updated message",
   "status": "paused"
@@ -373,6 +394,7 @@ Update a schedule. Omitting `apiKey` leaves the existing key unchanged.
 Toggle schedule status between `active` ↔ `paused`.
 
 **Response `200`:**
+
 ```json
 {
   "id": "s1",
@@ -399,6 +421,7 @@ List all run logs across all projects (admin only).
 **Query params:** `page`, `limit`, `status` (`success | failed`), `projectId`, `scheduleId`, `from` (ISO date), `to` (ISO date)
 
 **Response `200`:**
+
 ```json
 {
   "data": [
@@ -440,6 +463,7 @@ List run logs for a specific schedule.
 Returns aggregated stats for the dashboard.
 
 **Response `200`:**
+
 ```json
 {
   "activeProjects": 3,

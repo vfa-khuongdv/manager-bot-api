@@ -1,0 +1,3 @@
+ALTER TABLE `reminder_schedules`
+  ADD COLUMN `bot_id` INT UNSIGNED NULL DEFAULT NULL AFTER `chatwork_token`,
+  ADD INDEX `idx_reminder_schedules_bot_id` (`bot_id`);

@@ -13,7 +13,8 @@ type ReminderSchedule struct {
 	Name           string         `json:"name" gorm:"column:name;type:varchar(255);not null"`
 	CronExpression string         `json:"cronExpression" gorm:"column:cron_expression;type:varchar(255);not null"`
 	ChatworkRoomID string         `json:"chatworkRoomId" gorm:"column:chatwork_room_id;type:varchar(255);not null"`
-	ChatworkToken  string         `json:"chatworkToken" gorm:"column:chatwork_token;type:varchar(255);not null"`
+	ChatworkToken  *string        `json:"chatworkToken,omitempty" gorm:"column:chatwork_token;type:varchar(255)"`
+	BotID          *uint          `json:"botId,omitempty" gorm:"column:bot_id"`
 	Message        string         `json:"message" gorm:"column:message;type:text"`
 	Active         bool           `json:"active" gorm:"column:active;default:true"`
 	CreatedAt      time.Time      `json:"createdAt"`           // JSON tag for CreatedAt

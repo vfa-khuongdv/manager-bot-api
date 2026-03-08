@@ -105,7 +105,7 @@ func (handler *ReminderScheduleHandler) CreateSchedule(ctx *gin.Context) {
 		ProjectID:      input.ProjectID,
 		CronExpression: input.CronExpression,
 		ChatworkRoomID: input.ChatworkRoomID,
-		ChatworkToken:  input.ChatworkToken,
+		ChatworkToken:  &input.ChatworkToken,
 		Message:        input.Message,
 		Active:         input.Active,
 	}
@@ -339,7 +339,7 @@ func (handler *ReminderScheduleHandler) UpdateSchedule(ctx *gin.Context) {
 		existingSchedule.ChatworkRoomID = input.ChatworkRoomID
 	}
 	if input.ChatworkToken != "" {
-		existingSchedule.ChatworkToken = input.ChatworkToken
+		existingSchedule.ChatworkToken = &input.ChatworkToken
 	}
 	if input.Message != "" {
 		existingSchedule.Message = input.Message

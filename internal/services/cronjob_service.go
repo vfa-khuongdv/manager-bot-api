@@ -59,11 +59,25 @@ func (cs *CronService) Register(s *models.ReminderSchedule) {
 	cs.Remove(s.ID)
 
 	entryID, err := cs.c.AddFunc(s.CronExpression, func() {
+		// Resolve the token to use: prefer bot's token if botId is set
+		token := ""
+		if s.ChatworkToken != nil {
+			token = *s.ChatworkToken
+		}
+		if s.BotID != nil {
+			var bot models.ChatworkBot
+			if err := cs.db.First(&bot, *s.BotID).Error; err != nil {
+				logger.Errorf("[Reminder #%d] Failed to fetch bot token for BotID %d: %v", s.ID, *s.BotID, err)
+			} else {
+				token = bot.APIToken
+			}
+		}
+
 		// Mask token for logging
 		maskedToken := ""
-		if len(s.ChatworkToken) > 4 {
-			maskedToken = s.ChatworkToken[:4] + "..."
-		} else if len(s.ChatworkToken) > 0 {
+		if len(token) > 4 {
+			maskedToken = token[:4] + "..."
+		} else if len(token) > 0 {
 			maskedToken = "..." // Mask if token is short but not empty
 		} else {
 			maskedToken = "[EMPTY]" // Indicate if token is empty
@@ -71,7 +85,7 @@ func (cs *CronService) Register(s *models.ReminderSchedule) {
 
 		logger.Infof("[Reminder #%d] Attempting to send message. RoomID: '%s', Token (masked): '%s', Message: '%s'", s.ID, s.ChatworkRoomID, maskedToken, s.Message)
 
-		err := cs.cw.SendMessage(s.ChatworkToken, s.ChatworkRoomID, s.Message)
+		err := cs.cw.SendMessage(token, s.ChatworkRoomID, s.Message)
 
 		logEntry := models.ScheduleLog{
 			ProjectID:  s.ProjectID,

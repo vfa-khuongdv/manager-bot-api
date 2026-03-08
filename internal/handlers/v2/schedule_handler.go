@@ -16,6 +16,7 @@ type ScheduleHandlerV2 struct {
 	projectService  services.IProjectService
 	cronService     services.ICronService
 	chatworkService services.IChatworkService
+	botService      services.IChatworkBotService
 }
 
 // NewScheduleHandlerV2 creates a new ScheduleHandlerV2
@@ -24,12 +25,14 @@ func NewScheduleHandlerV2(
 	projectService services.IProjectService,
 	cronService services.ICronService,
 	chatworkService services.IChatworkService,
+	botService services.IChatworkBotService,
 ) *ScheduleHandlerV2 {
 	return &ScheduleHandlerV2{
 		service:         service,
 		projectService:  projectService,
 		cronService:     cronService,
 		chatworkService: chatworkService,
+		botService:      botService,
 	}
 }
 
@@ -82,7 +85,8 @@ func (h *ScheduleHandlerV2) Create(c *gin.Context) {
 	var input struct {
 		Name    string `json:"name" binding:"required"`
 		RoomID  string `json:"roomId" binding:"required"`
-		APIKey  string `json:"apiKey" binding:"required"`
+		APIKey  string `json:"apiKey"`
+		BotID   *uint  `json:"botId"`
 		Cron    string `json:"cron" binding:"required"`
 		Message string `json:"message"`
 		Status  string `json:"status"`
@@ -93,14 +97,36 @@ func (h *ScheduleHandlerV2) Create(c *gin.Context) {
 		return
 	}
 
+	// Either apiKey or botId must be provided, but not both
+	if input.BotID == nil && input.APIKey == "" {
+		utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrInvalidData, "either apiKey or botId is required"))
+		return
+	}
+	if input.BotID != nil && input.APIKey != "" {
+		utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrInvalidData, "apiKey and botId are mutually exclusive"))
+		return
+	}
+	if input.BotID != nil {
+		if _, err := h.botService.GetBotByID(*input.BotID); err != nil {
+			utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrResourceNotFound, "bot not found"))
+			return
+		}
+	}
+
 	active := input.Status != "paused"
+
+	var chatworkToken *string
+	if input.APIKey != "" {
+		chatworkToken = &input.APIKey
+	}
 
 	schedule := models.ReminderSchedule{
 		ProjectID:      uint(projectID),
 		Name:           input.Name,
 		CronExpression: input.Cron,
 		ChatworkRoomID: input.RoomID,
-		ChatworkToken:  input.APIKey,
+		ChatworkToken:  chatworkToken,
+		BotID:          input.BotID,
 		Message:        input.Message,
 		Active:         active,
 	}
@@ -173,6 +199,7 @@ func (h *ScheduleHandlerV2) Update(c *gin.Context) {
 		Name    *string `json:"name"`
 		RoomID  *string `json:"roomId"`
 		APIKey  *string `json:"apiKey"`
+		BotID   **uint  `json:"botId"`
 		Cron    *string `json:"cron"`
 		Message *string `json:"message"`
 		Status  *string `json:"status"`
@@ -190,7 +217,7 @@ func (h *ScheduleHandlerV2) Update(c *gin.Context) {
 		schedule.ChatworkRoomID = *input.RoomID
 	}
 	if input.APIKey != nil {
-		schedule.ChatworkToken = *input.APIKey
+		schedule.ChatworkToken = input.APIKey
 	}
 	if input.Cron != nil {
 		schedule.CronExpression = *input.Cron
@@ -200,6 +227,23 @@ func (h *ScheduleHandlerV2) Update(c *gin.Context) {
 	}
 	if input.Status != nil {
 		schedule.Active = *input.Status != "paused"
+	}
+	if input.BotID != nil {
+		if *input.BotID == nil {
+			schedule.BotID = nil
+		} else {
+			if _, err := h.botService.GetBotByID(**input.BotID); err != nil {
+				utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrResourceNotFound, "bot not found"))
+				return
+			}
+			schedule.BotID = *input.BotID
+			// Clear the direct token when switching to a bot
+			schedule.ChatworkToken = nil
+		}
+	}
+	// Switching from bot back to apiKey: clear BotID
+	if input.APIKey != nil && schedule.BotID != nil {
+		schedule.BotID = nil
 	}
 
 	if err := h.service.Update(schedule); err != nil {
@@ -298,7 +342,8 @@ func (h *ScheduleHandlerV2) Test(c *gin.Context) {
 
 	var input struct {
 		RoomID     string `json:"roomId" binding:"required"`
-		APIKey     string `json:"apiKey" binding:"required"`
+		APIKey     string `json:"apiKey"`
+		BotID      *uint  `json:"botId"`
 		Message    string `json:"message" binding:"required"`
 		ScheduleID *uint  `json:"scheduleId"`
 	}
@@ -309,10 +354,21 @@ func (h *ScheduleHandlerV2) Test(c *gin.Context) {
 	}
 
 	apiKey := input.APIKey
-	// If the frontend sends the masked API key, we must look it up from the database using ScheduleID
-	if apiKey == "cwk_***hidden***" {
+
+	// Resolve token from bot if botId is provided directly
+	if input.BotID != nil {
+		bot, err := h.botService.GetBotByID(*input.BotID)
+		if err != nil || bot == nil {
+			utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrResourceNotFound, "bot not found"))
+			return
+		}
+		apiKey = bot.APIToken
+	}
+
+	// If the frontend sends the masked API key, look it up from the schedule
+	if apiKey == "cwk_***hidden***" || (apiKey == "" && input.BotID == nil) {
 		if input.ScheduleID == nil {
-			utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrInvalidData, "scheduleId is required when apiKey is masked"))
+			utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrInvalidData, "scheduleId is required when apiKey is masked or empty"))
 			return
 		}
 
@@ -321,7 +377,23 @@ func (h *ScheduleHandlerV2) Test(c *gin.Context) {
 			utils.RespondWithError(c, http.StatusNotFound, errors.New(errors.ErrResourceNotFound, "Schedule not found to resolve API key"))
 			return
 		}
-		apiKey = schedule.ChatworkToken
+
+		if schedule.BotID != nil {
+			// Schedule uses a bot — fetch the bot's token
+			bot, err := h.botService.GetBotByID(*schedule.BotID)
+			if err != nil || bot == nil {
+				utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrResourceNotFound, "linked bot not found"))
+				return
+			}
+			apiKey = bot.APIToken
+		} else if schedule.ChatworkToken != nil {
+			apiKey = *schedule.ChatworkToken
+		}
+	}
+
+	if apiKey == "" {
+		utils.RespondWithError(c, http.StatusBadRequest, errors.New(errors.ErrInvalidData, "could not resolve API token for test message"))
+		return
 	}
 
 	err = h.chatworkService.SendMessage(apiKey, input.RoomID, input.Message)
@@ -392,6 +464,7 @@ func buildScheduleResponse(s *models.ReminderSchedule) gin.H {
 		"projectName": projectName,
 		"roomId":      s.ChatworkRoomID,
 		"apiKey":      "cwk_***hidden***",
+		"botId":       s.BotID,
 		"cron":        s.CronExpression,
 		"message":     s.Message,
 		"status":      status,

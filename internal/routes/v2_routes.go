@@ -17,12 +17,15 @@ func SetupV2Routes(
 	logService *services.ScheduleLogService,
 	cronService services.ICronService,
 	chatworkService services.IChatworkService,
+	botService services.IChatworkBotService,
 ) {
 	authHandler := v2.NewAuthHandler()
 	projectHandler := v2.NewProjectHandlerV2(projectService, cronService)
-	scheduleHandler := v2.NewScheduleHandlerV2(scheduleService, projectService, cronService, chatworkService)
+	scheduleHandler := v2.NewScheduleHandlerV2(scheduleService, projectService, cronService, chatworkService, botService)
 	runLogHandler := v2.NewRunLogHandlerV2(logService)
 	dashboardHandler := v2.NewDashboardHandlerV2(logService)
+	botHandler := v2.NewBotHandlerV2(botService)
+	botRequestHandler := v2.NewBotRequestHandlerV2(botService)
 
 	apiV2 := router.Group("/api/v2")
 
@@ -49,6 +52,16 @@ func SetupV2Routes(
 		jwt.GET("/run-logs", runLogHandler.GetAll)
 		jwt.GET("/projects/:projectId/run-logs", runLogHandler.GetByProject)
 		jwt.GET("/projects/:projectId/schedules/:scheduleId/run-logs", runLogHandler.GetBySchedule)
+
+		// Bots
+		jwt.GET("/bots", botHandler.GetAll)
+		jwt.POST("/bots", botHandler.Create)
+		jwt.DELETE("/bots/:botId", botHandler.Delete)
+
+		// Bot Requests
+		jwt.GET("/bot-requests", botRequestHandler.GetAll)
+		jwt.POST("/bot-requests/:requestId/accept", botRequestHandler.Accept)
+		jwt.DELETE("/bot-requests/:requestId", botRequestHandler.Delete)
 	}
 
 	// ── Project-scoped routes (JWT or X-Project-Key) ───────────────────────────
