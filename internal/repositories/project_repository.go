@@ -89,6 +89,7 @@ func (repo *ProjectRepository) GetAllV2(status string, paging *utils.Paging) ([]
 	if status != "" {
 		q = q.Where("status = ?", status)
 	}
+	q = q.Order("id DESC")
 
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
