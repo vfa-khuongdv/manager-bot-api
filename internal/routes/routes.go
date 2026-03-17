@@ -33,14 +33,7 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 	botService := services.NewChatworkBotService(chatworkBotRepo, reminderScheduleRepo)
 
 	// Handlers
-	projectHandler := handlers.NewProjectHandler(projectService, cronService)
 	hookHandler := handlers.NewHookHandler(chatworkService, hookService)
-	reminderScheduleHandler := handlers.NewReminderScheduleHandler(
-		reminderScheduleService,
-		projectService,
-		cronService,
-	)
-	scheduleLogHandler := handlers.NewScheduleLogHandler(scheduleLogService)
 
 	// Add middleware for CORS and logging
 	router.Use(
@@ -56,26 +49,6 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 
 	// Setup API routes with API key authentication
 	api := router.Group("/api/v1")
-	api.Use(middlewares.APIKeyMiddleware())
-	{
-		// Project routes
-		api.GET("/projects", projectHandler.GetAll)
-		api.POST("/projects", projectHandler.Create)
-		api.GET("/projects/:id", projectHandler.GetByID)
-		api.PATCH("/projects/:id", projectHandler.Update)
-		api.DELETE("/projects/:id", projectHandler.Delete)
-		api.POST("/projects/verify-access", projectHandler.VerifyAccess)
-
-		// Reminder routes
-		api.POST("/reminder-schedules", reminderScheduleHandler.CreateSchedule)
-		api.GET("/reminder-schedules/:id", reminderScheduleHandler.GetSchedule)                    // This :id is for the reminder schedule itself
-		api.GET("/projects/:id/reminder-schedules", reminderScheduleHandler.GetSchedulesByProject) // Changed :project_id to :id
-		api.PATCH("/reminder-schedules/:id", reminderScheduleHandler.UpdateSchedule)
-		api.DELETE("/reminder-schedules/:id", reminderScheduleHandler.DeleteSchedule)
-
-		// Dashboard routes
-		api.GET("/dashboard", scheduleLogHandler.GetDashboard)
-	}
 
 	// Hook routes
 	api.POST("/hooks/chatwork", hookHandler.ChatworkHook)
