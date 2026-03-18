@@ -261,9 +261,6 @@ func ConvertSlackPayloadToChatwork(payload SlackPayload) string {
 					}
 				}
 			}
-			if attachment.Footer != "" {
-				builder.WriteString("\n📌 " + attachment.Footer + "\n")
-			}
 			builder.WriteString("[hr]\n")
 		}
 
