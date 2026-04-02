@@ -3,12 +3,12 @@ package services
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/vfa-khuongdv/golang-cms/internal/configs"
-	"github.com/vfa-khuongdv/golang-cms/internal/models"
 )
 
 var serverStartTime int64 = 0
@@ -71,34 +71,14 @@ func NewHealthChatworkService() *HealthChatworkService {
 func (s *HealthChatworkService) CheckHealth() (ChatworkHealth, error) {
 	start := time.Now()
 
-	db := configs.DB
-	if db == nil {
-		return ChatworkHealth{
-			Status:      "down",
-			Latency:     0,
-			APIVersion:  "v2",
-			LastChecked: time.Now().Format(time.RFC3339),
-		}, fmt.Errorf("database not initialized")
-	}
-
-	var bot models.ChatworkBot
-	if err := db.Table("chatwork_bots").First(&bot).Error; err != nil {
-		return ChatworkHealth{
-			Status:      "down",
-			Latency:     0,
-			APIVersion:  "v2",
-			LastChecked: time.Now().Format(time.RFC3339),
-		}, fmt.Errorf("no chatwork bot found: %w", err)
-	}
-
-	apiKey := bot.APIToken
+	apiKey := os.Getenv("CHATWORK_API_KEY")
 	if apiKey == "" {
 		return ChatworkHealth{
 			Status:      "down",
 			Latency:     0,
 			APIVersion:  "v2",
 			LastChecked: time.Now().Format(time.RFC3339),
-		}, fmt.Errorf("chatwork bot api_token is empty")
+		}, fmt.Errorf("CHATWORK_API_KEY not configured")
 	}
 
 	req, err := http.NewRequest("GET", s.BaseURL+"/me", nil)
