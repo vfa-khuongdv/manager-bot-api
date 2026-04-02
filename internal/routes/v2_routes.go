@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/vfa-khuongdv/golang-cms/internal/handlers"
 	v2 "github.com/vfa-khuongdv/golang-cms/internal/handlers/v2"
 	"github.com/vfa-khuongdv/golang-cms/internal/middlewares"
 	"github.com/vfa-khuongdv/golang-cms/internal/services"
@@ -32,6 +33,12 @@ func SetupV2Routes(
 	// ── Public: Auth ───────────────────────────────────────────────────────────
 	apiV2.POST("/auth/login", authHandler.Login)
 	apiV2.POST("/auth/logout", middlewares.JWTAuthMiddleware(), authHandler.Logout)
+
+	// ── Health Check Routes ─────────────────────────────────────────────────
+	apiV2.GET("/health", handlers.GetHealth)
+	apiV2.GET("/health/chatwork", handlers.GetChatworkHealth)
+	apiV2.GET("/health/server", handlers.GetServerHealth)
+	apiV2.GET("/health/database", handlers.GetDatabaseHealth)
 
 	// ── JWT-protected routes ───────────────────────────────────────────────────
 	jwt := apiV2.Group("")
