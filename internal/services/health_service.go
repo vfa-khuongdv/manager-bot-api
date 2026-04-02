@@ -71,14 +71,14 @@ func NewHealthChatworkService() *HealthChatworkService {
 func (s *HealthChatworkService) CheckHealth() (ChatworkHealth, error) {
 	start := time.Now()
 
-	apiKey := os.Getenv("CHATWORK_API_KEY")
+	apiKey := os.Getenv("CHATWORK_API_TOKEN")
 	if apiKey == "" {
 		return ChatworkHealth{
 			Status:      "down",
 			Latency:     0,
 			APIVersion:  "v2",
 			LastChecked: time.Now().Format(time.RFC3339),
-		}, fmt.Errorf("CHATWORK_API_KEY not configured")
+		}, fmt.Errorf("CHATWORK_API_TOKEN not configured")
 	}
 
 	req, err := http.NewRequest("GET", s.BaseURL+"/me", nil)
