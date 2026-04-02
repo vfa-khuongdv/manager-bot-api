@@ -2,15 +2,20 @@ package services
 
 import (
 	"fmt"
-	"math"
 	"net/http"
-	"runtime"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/vfa-khuongdv/golang-cms/internal/configs"
 	"github.com/vfa-khuongdv/golang-cms/internal/models"
-	"golang.org/x/sys/unix"
 )
+
+var serverStartTime int64 = 0
+
+func init() {
+	serverStartTime = time.Now().Unix()
+}
 
 type ChatworkHealth struct {
 	Status      string `json:"status"`
@@ -134,44 +139,24 @@ func (s *HealthChatworkService) CheckHealth() (ChatworkHealth, error) {
 	}, nil
 }
 
-var serverStartTime int64 = 0
-
-func init() {
-	serverStartTime = time.Now().Unix()
-}
-
 func GetServerHealth() ServerHealth {
-	var r unix.Rusage
-	unix.Getrusage(unix.RUSAGE_SELF, &r)
-
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-
-	usedMem := m.Alloc
-	totalMem := uint64(r.Maxrss * 1024)
-	if totalMem == 0 {
-		totalMem = 1
-	}
-	memUsage := float64(usedMem) / float64(totalMem) * 100
-
-	utime := float64(r.Utime.Sec) + float64(r.Utime.Usec)/1000000
-	stime := float64(r.Stime.Sec) + float64(r.Stime.Usec)/1000000
-	totalCpuTime := utime + stime
-
-	uptimeSeconds := time.Now().Unix() - serverStartTime
-	if uptimeSeconds <= 0 {
-		uptimeSeconds = 1
+	cpuPercents, _ := cpu.Percent(0, false)
+	cpuPercent := 0.0
+	if len(cpuPercents) > 0 {
+		cpuPercent = cpuPercents[0]
 	}
 
-	cpuUsage := (totalCpuTime / float64(uptimeSeconds)) * 100
-	if cpuUsage > 100 {
-		cpuUsage = 100
+	v, _ := mem.VirtualMemory()
+
+	uptime := time.Now().Unix() - serverStartTime
+	if uptime <= 0 {
+		uptime = 1
 	}
 
 	var status string
-	if cpuUsage > 95 || memUsage > 95 {
+	if cpuPercent > 95 || v.UsedPercent > 95 {
 		status = "unhealthy"
-	} else if cpuUsage > 80 || memUsage > 80 {
+	} else if cpuPercent > 80 || v.UsedPercent > 80 {
 		status = "degraded"
 	} else {
 		status = "healthy"
@@ -179,13 +164,13 @@ func GetServerHealth() ServerHealth {
 
 	return ServerHealth{
 		Status: status,
-		Uptime: uptimeSeconds,
+		Uptime: uptime,
 		CPU: CPUHealth{
-			Usage: math.Round(cpuUsage*100) / 100,
+			Usage: cpuPercent,
 		},
 		Memory: MemoryHealth{
-			Used:  int64(usedMem / (1024 * 1024)),
-			Total: int64(totalMem / (1024 * 1024)),
+			Used:  int64(v.Used) / (1024 * 1024),
+			Total: int64(v.Total) / (1024 * 1024),
 		},
 	}
 }
