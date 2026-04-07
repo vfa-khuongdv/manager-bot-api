@@ -65,6 +65,7 @@ func main() {
 	// Initialize and start cron service
 	cronService := services.NewCronService(db)
 	cronService.LoadFromDB()
+	cronService.RegisterCVECrawler()
 	cronService.Start()
 
 	// Setup routes

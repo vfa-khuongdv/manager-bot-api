@@ -5,6 +5,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"github.com/vfa-khuongdv/golang-cms/internal/models"
+	"github.com/vfa-khuongdv/golang-cms/internal/utils"
 	"github.com/vfa-khuongdv/golang-cms/pkg/logger"
 	"gorm.io/gorm"
 )
@@ -24,6 +25,7 @@ type ICronService interface {
 	Start()
 	Stop()
 	SyncAll()
+	RegisterCVECrawler()
 }
 
 func NewCronService(db *gorm.DB) *CronService {
@@ -146,13 +148,11 @@ func (cs *CronService) SyncAll() {
 		return
 	}
 
-	// Unregister all existing schedules
 	for scheduleID := range cs.entries {
 		logger.Infof("Removing existing cron job for schedule ID %d", scheduleID)
 		cs.Remove(scheduleID)
 	}
 
-	// Register all active schedules again
 	for _, project := range projects {
 		for _, schedule := range project.ReminderSchedules {
 			sCopy := schedule
@@ -160,4 +160,32 @@ func (cs *CronService) SyncAll() {
 			cs.Register(&sCopy)
 		}
 	}
+}
+
+const cveJobEntryID = 99999
+
+func (cs *CronService) RegisterCVECrawler() {
+	roomID := utils.GetEnv("CVE_CHATWORK_ROOM_ID", "")
+	apiKey := utils.GetEnv("CVE_CHATWORK_API_KEY", "")
+	nvdAPIKey := utils.GetEnv("NVD_API_KEY", "")
+
+	if roomID == "" || apiKey == "" {
+		logger.Warn("[CVE] CVE_CHATWORK_ROOM_ID or CVE_CHATWORK_API_KEY not configured, skipping CVE crawler job")
+		return
+	}
+
+	cveService := NewCveCrawlerService(roomID, apiKey, nvdAPIKey)
+
+	_, err := cs.c.AddFunc("0 7 * * *", func() {
+		logger.Info("[CVE] Starting daily CVE crawl job")
+		cveService.CrawlAndNotify()
+	})
+
+	if err != nil {
+		logger.Errorf("[CVE] Failed to register CVE crawler job: %v", err)
+		return
+	}
+
+	cs.entries[cveJobEntryID] = cron.EntryID(cveJobEntryID)
+	logger.Info("[CVE] CVE crawler job registered successfully (runs daily at 07:00)")
 }
