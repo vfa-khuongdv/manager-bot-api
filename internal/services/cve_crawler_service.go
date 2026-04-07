@@ -220,11 +220,8 @@ func (s *CveCrawlerService) parseCVEs(vulns []NVDVulnerability) []CVEItem {
 			description = description[:300] + "..."
 		}
 
-		language := s.detectLanguage(description, v.CVE.ID)
-
 		items = append(items, CVEItem{
 			ID:          v.CVE.ID,
-			Language:    language,
 			Severity:    severity,
 			BaseScore:   baseScore,
 			Description: description,
@@ -242,48 +239,8 @@ func (s *CveCrawlerService) parseCVEs(vulns []NVDVulnerability) []CVEItem {
 	return items
 }
 
-func (s *CveCrawlerService) detectLanguage(description, cveID string) string {
-	keywords := map[string][]string{
-		"JavaScript": {"javascript", "npm", "nodejs", "node.js", "react", "vue.js", "angular", "typescript"},
-		"Java":       {"java", "spring", "spring boot", "jvm", "jdk", "tomcat"},
-		"PHP":        {"php", "laravel", "composer", "symfony"},
-		"Python":     {"python", "pip", "django", "flask", "py"},
-		"Go":         {"golang", "go ", "gin", "gorilla"},
-		"Rust":       {"rust", "cargo", "crates"},
-		"Ruby":       {"ruby", "rails", "rubygems"},
-		".NET":       {".net", "dotnet", "asp.net", "c#"},
-		"MySQL":      {"mysql", "mariadb"},
-		"MongoDB":    {"mongodb", "mongoose"},
-		"PostgreSQL": {"postgresql", "postgres"},
-		"Redis":      {"redis"},
-		"Docker":     {"docker", "containerd"},
-		"Kubernetes": {"kubernetes", "k8s", "kubectl"},
-		"AWS":        {"aws", "amazon", "s3", "ec2", "lambda"},
-		"Azure":      {"azure"},
-		"Nginx":      {"nginx"},
-		"Apache":     {"apache", "httpd"},
-		"OpenSSL":    {"openssl", "tls", "ssl"},
-		"Android":    {"android", "adb"},
-		"iOS":        {"ios", "iphone", "ipad"},
-	}
-
-	lowerDesc := strings.ToLower(description)
-	lowerID := strings.ToLower(cveID)
-
-	for lang, words := range keywords {
-		for _, word := range words {
-			if strings.Contains(lowerDesc, word) || strings.Contains(lowerID, word) {
-				return lang
-			}
-		}
-	}
-
-	return "Other"
-}
-
 type CVEItem struct {
 	ID          string
-	Language    string
 	Severity    string
 	BaseScore   float64
 	Description string
@@ -313,7 +270,7 @@ func (s *CveCrawlerService) formatMessageByScore(items []CVEItem, date time.Time
 	sb.WriteString(fmt.Sprintf("🔴 CRITICAL (%d):\n", criticalCount))
 	for _, item := range items {
 		if item.Severity == "CRITICAL" {
-			sb.WriteString(fmt.Sprintf("• %s [%s] [%.1f]\n", item.ID, item.Language, item.BaseScore))
+			sb.WriteString(fmt.Sprintf("• %s - SCORE:%.1f\n", item.ID, item.BaseScore))
 			sb.WriteString(fmt.Sprintf("  %s\n", item.Description))
 			sb.WriteString(fmt.Sprintf("  🔗 https://nvd.nist.gov/vuln/detail/%s\n", item.ID))
 			sb.WriteString("[hr]\n")
@@ -323,7 +280,7 @@ func (s *CveCrawlerService) formatMessageByScore(items []CVEItem, date time.Time
 	sb.WriteString(fmt.Sprintf("🟠 HIGH (%d):\n", highCount))
 	for _, item := range items {
 		if item.Severity == "HIGH" {
-			sb.WriteString(fmt.Sprintf("• %s [%s] [%.1f]\n", item.ID, item.Language, item.BaseScore))
+			sb.WriteString(fmt.Sprintf("• %s - SCORE:%.1f\n", item.ID, item.BaseScore))
 			sb.WriteString(fmt.Sprintf("  %s\n", item.Description))
 			sb.WriteString(fmt.Sprintf("  🔗 https://nvd.nist.gov/vuln/detail/%s\n", item.ID))
 			sb.WriteString("[hr]\n")
