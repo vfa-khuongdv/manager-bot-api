@@ -176,7 +176,7 @@ func (cs *CronService) RegisterCVECrawler() {
 
 	cveService := NewCveCrawlerService(roomID, apiKey, nvdAPIKey)
 
-	_, err := cs.c.AddFunc("0 7 * * *", func() {
+	_, err := cs.c.AddFunc("0 0 * * *", func() {
 		logger.Info("[CVE] Starting daily CVE crawl job")
 		cveService.CrawlAndNotify()
 	})
@@ -187,5 +187,5 @@ func (cs *CronService) RegisterCVECrawler() {
 	}
 
 	cs.entries[cveJobEntryID] = cron.EntryID(cveJobEntryID)
-	logger.Info("[CVE] CVE crawler job registered successfully (runs daily at 07:00)")
+	logger.Info("[CVE] CVE crawler job registered successfully (runs daily at 00:00 UTC / 07:00 GMT+7)")
 }
