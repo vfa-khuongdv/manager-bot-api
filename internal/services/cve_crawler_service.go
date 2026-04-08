@@ -270,7 +270,7 @@ func (s *CveCrawlerService) formatMessageByScore(items []CVEItem, date time.Time
 	sb.WriteString(fmt.Sprintf("🔴 CRITICAL (%d):\n", criticalCount))
 	for _, item := range items {
 		if item.Severity == "CRITICAL" {
-			sb.WriteString(fmt.Sprintf("• %s - SCORE:%.1f\n", item.ID, item.BaseScore))
+			sb.WriteString(fmt.Sprintf("• %s - SCORE: %.1f\n", item.ID, item.BaseScore))
 			sb.WriteString(fmt.Sprintf("  %s\n", item.Description))
 			sb.WriteString(fmt.Sprintf("  🔗 https://nvd.nist.gov/vuln/detail/%s\n", item.ID))
 			sb.WriteString("[hr]\n")
@@ -280,7 +280,7 @@ func (s *CveCrawlerService) formatMessageByScore(items []CVEItem, date time.Time
 	sb.WriteString(fmt.Sprintf("🟠 HIGH (%d):\n", highCount))
 	for _, item := range items {
 		if item.Severity == "HIGH" {
-			sb.WriteString(fmt.Sprintf("• %s - SCORE:%.1f\n", item.ID, item.BaseScore))
+			sb.WriteString(fmt.Sprintf("• %s - SCORE: %.1f\n", item.ID, item.BaseScore))
 			sb.WriteString(fmt.Sprintf("  %s\n", item.Description))
 			sb.WriteString(fmt.Sprintf("  🔗 https://nvd.nist.gov/vuln/detail/%s\n", item.ID))
 			sb.WriteString("[hr]\n")
