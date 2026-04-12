@@ -232,10 +232,6 @@ func (s *CveCrawlerService) parseCVEs(vulns []NVDVulnerability) []CVEItem {
 		return items[i].BaseScore > items[j].BaseScore
 	})
 
-	if len(items) > 10 {
-		items = items[:10]
-	}
-
 	return items
 }
 
