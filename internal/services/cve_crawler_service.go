@@ -132,16 +132,19 @@ func (s *CveCrawlerService) CrawlAndNotify() {
 		return
 	}
 
-	message := s.formatMessageByScore(allItems, now)
-	if message == "" {
+	messages := s.formatMessagesByBatch(allItems, now)
+	if len(messages) == 0 {
 		logger.Info("No CVEs to report")
 		return
 	}
 
-	if err := s.cw.SendMessage(s.apiKey, s.roomID, message); err != nil {
-		logger.Errorf("[CVE] Failed to send message to Chatwork: %v", err)
-	} else {
-		logger.Infof("[CVE] Successfully sent CVE report to Chatwork (%d CVEs)", len(allItems))
+	for i, message := range messages {
+		if err := s.cw.SendMessage(s.apiKey, s.roomID, message); err != nil {
+			logger.Errorf("[CVE] Failed to send message %d to Chatwork: %v", i+1, err)
+		} else {
+			logger.Infof("[CVE] Successfully sent CVE report %d/%d to Chatwork", i+1, len(messages))
+		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -261,6 +264,74 @@ func (s *CveCrawlerService) formatMessageByScore(items []CVEItem, date time.Time
 	var sb strings.Builder
 
 	sb.WriteString(fmt.Sprintf("[info][title]🚨 DAILY CVE ALERT - %s[/title]\n", date.Format("02/01/2006")))
+	sb.WriteString(fmt.Sprintf("📊 Tổng: 🔴 CRITICAL: %d | 🟠 HIGH: %d\n\n", criticalCount, highCount))
+
+	sb.WriteString(fmt.Sprintf("🔴 CRITICAL (%d):\n", criticalCount))
+	for _, item := range items {
+		if item.Severity == "CRITICAL" {
+			sb.WriteString(fmt.Sprintf("• %s - SCORE: %.1f\n", item.ID, item.BaseScore))
+			sb.WriteString(fmt.Sprintf("  %s\n", item.Description))
+			sb.WriteString(fmt.Sprintf("  🔗 https://nvd.nist.gov/vuln/detail/%s\n", item.ID))
+			sb.WriteString("[hr]\n")
+		}
+	}
+
+	sb.WriteString(fmt.Sprintf("🟠 HIGH (%d):\n", highCount))
+	for _, item := range items {
+		if item.Severity == "HIGH" {
+			sb.WriteString(fmt.Sprintf("• %s - SCORE: %.1f\n", item.ID, item.BaseScore))
+			sb.WriteString(fmt.Sprintf("  %s\n", item.Description))
+			sb.WriteString(fmt.Sprintf("  🔗 https://nvd.nist.gov/vuln/detail/%s\n", item.ID))
+			sb.WriteString("[hr]\n")
+		}
+	}
+
+	sb.WriteString("📧 Powered by CVE Crawler\n")
+	sb.WriteString("[/info]")
+
+	return sb.String()
+}
+
+func (s *CveCrawlerService) formatMessagesByBatch(items []CVEItem, date time.Time) []string {
+	if len(items) == 0 {
+		return nil
+	}
+
+	const batchSize = 20
+	var messages []string
+
+	for i := 0; i < len(items); i += batchSize {
+		end := i + batchSize
+		if end > len(items) {
+			end = len(items)
+		}
+		batch := items[i:end]
+		messages = append(messages, s.formatMessageByScoreWithPagination(batch, date, i+1, len(items)))
+	}
+
+	return messages
+}
+
+func (s *CveCrawlerService) formatMessageByScoreWithPagination(items []CVEItem, date time.Time, startIndex, total int) string {
+	if len(items) == 0 {
+		return ""
+	}
+
+	criticalCount := 0
+	highCount := 0
+
+	for _, item := range items {
+		if item.Severity == "CRITICAL" {
+			criticalCount++
+		} else {
+			highCount++
+		}
+	}
+
+	var sb strings.Builder
+
+	title := fmt.Sprintf("🚨 DAILY CVE ALERT - %s (Page %d-%d/%d)", date.Format("02/01/2006"), startIndex, startIndex+len(items)-1, total)
+	sb.WriteString(fmt.Sprintf("[info][title]%s[/title]\n", title))
 	sb.WriteString(fmt.Sprintf("📊 Tổng: 🔴 CRITICAL: %d | 🟠 HIGH: %d\n\n", criticalCount, highCount))
 
 	sb.WriteString(fmt.Sprintf("🔴 CRITICAL (%d):\n", criticalCount))
