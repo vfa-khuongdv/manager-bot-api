@@ -44,6 +44,36 @@ type CveConfigService struct {
 	chatworkBotRepo repositories.IChatworkBotRepository
 }
 
+var supportedOSVEcosystems = map[string]string{
+	"maven":          "Maven",
+	"npm":            "npm",
+	"pypi":           "PyPI",
+	"go":             "Go",
+	"crates.io":      "crates.io",
+	"nuget":          "NuGet",
+	"rubygems":       "RubyGems",
+	"packagist":      "Packagist",
+	"pub":            "Pub",
+	"swiftpm":        "SwiftPM",
+	"alpine":         "Alpine",
+	"debian":         "Debian",
+	"ubuntu":         "Ubuntu",
+	"red hat":        "Red Hat",
+	"rocky linux":    "Rocky Linux",
+	"almalinux":      "AlmaLinux",
+	"suse":           "SUSE",
+	"opensuse":       "openSUSE",
+	"oracle linux":   "Oracle Linux",
+	"amazon linux":   "Amazon Linux",
+	"photon os":      "Photon OS",
+	"github actions": "GitHub Actions",
+	"kubernetes":     "Kubernetes",
+	"android":        "Android",
+	"bitnami":        "Bitnami",
+	"oss-fuzz":       "OSS-Fuzz",
+	"chainguard":     "Chainguard",
+}
+
 func NewCveConfigService(repo repositories.ICveConfigRepository, logRepo repositories.ICveScanLogRepository, botRepo repositories.IChatworkBotRepository) *CveConfigService {
 	return &CveConfigService{
 		repo:            repo,
@@ -619,16 +649,13 @@ func parseLanguages(languages string) ([]OSVQuery, error) {
 }
 
 func isValidEcosystem(eco string) bool {
-	valid := []string{"npm", "PyPI", "Maven", "Go", "crates.io", "NuGet", "RubyGems", "Packagist", "Pub", "SwiftPM"}
-	for _, v := range valid {
-		if eco == v {
-			return true
-		}
-	}
-	return false
+	_, ok := supportedOSVEcosystems[strings.ToLower(strings.TrimSpace(eco))]
+	return ok
 }
 
 func mapEcosystem(eco string) string {
+	normalized := strings.ToLower(strings.TrimSpace(eco))
+
 	mapping := map[string]string{
 		"python": "PyPI",
 		"pip":    "PyPI",
@@ -643,10 +670,13 @@ func mapEcosystem(eco string) string {
 		"ruby":   "RubyGems",
 		"php":    "Packagist",
 	}
-	if mapped, ok := mapping[eco]; ok {
+	if mapped, ok := mapping[normalized]; ok {
 		return mapped
 	}
-	return eco
+	if canonical, ok := supportedOSVEcosystems[normalized]; ok {
+		return canonical
+	}
+	return strings.TrimSpace(eco)
 }
 
 func callOSVAPI(queries []OSVQuery) (*OSVResponse, error) {
@@ -687,43 +717,6 @@ func callOSVAPI(queries []OSVQuery) (*OSVResponse, error) {
 	}
 
 	return &osvResp, nil
-}
-
-func (s *CveConfigService) sendNotification(config *models.CveConfig, vulns []models.Vulnerability, roomID string) {
-	if config.ApiKey == "" || roomID == "" {
-		return
-	}
-
-	message := formatVulnerabilityMessage(config, vulns)
-	if err := s.chatworkSvc.SendMessage(config.ApiKey, roomID, message); err != nil {
-		logger.Warnf("Failed to send notification: %v", err)
-	}
-}
-
-func formatVulnerabilityMessage(config *models.CveConfig, vulns []models.Vulnerability) string {
-	var sb strings.Builder
-
-	sb.WriteString(fmt.Sprintf("[info][title]🚨 CVE Scan Results: %s[/title]\n", config.Name))
-	sb.WriteString(fmt.Sprintf("📊 Total vulnerabilities found: %d\n\n", len(vulns)))
-
-	bySeverity := make(map[string][]models.Vulnerability)
-	for _, v := range vulns {
-		bySeverity[v.Severity] = append(bySeverity[v.Severity], v)
-	}
-
-	for _, sev := range []string{"critical", "high", "medium", "low"} {
-		if vulns, ok := bySeverity[sev]; ok {
-			icon := map[string]string{"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}[sev]
-			sb.WriteString(fmt.Sprintf("%s %s (%d):\n", icon, strings.ToUpper(sev), len(vulns)))
-			for _, v := range vulns {
-				sb.WriteString(fmt.Sprintf("• %s - %s@%s\n", v.ID, v.Package, v.Version))
-				sb.WriteString("[hr]\n")
-			}
-		}
-	}
-
-	sb.WriteString("[/info]")
-	return sb.String()
 }
 
 type OSVQuery struct {
