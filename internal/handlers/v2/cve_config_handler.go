@@ -11,12 +11,14 @@ import (
 )
 
 type CveConfigHandler struct {
-	service services.ICveConfigService
+	service     services.ICveConfigService
+	cronService services.ICronService
 }
 
-func NewCveConfigHandler(service services.ICveConfigService) *CveConfigHandler {
+func NewCveConfigHandler(service services.ICveConfigService, cronService services.ICronService) *CveConfigHandler {
 	return &CveConfigHandler{
-		service: service,
+		service:     service,
+		cronService: cronService,
 	}
 }
 
@@ -106,6 +108,8 @@ func (h *CveConfigHandler) Create(c *gin.Context) {
 		return
 	}
 
+	h.cronService.SyncCVEConfigs()
+
 	utils.RespondWithOK(c, http.StatusCreated, buildCveConfigResponse(config))
 }
 
@@ -162,6 +166,8 @@ func (h *CveConfigHandler) Update(c *gin.Context) {
 		return
 	}
 
+	h.cronService.SyncCVEConfigs()
+
 	utils.RespondWithOK(c, http.StatusOK, buildCveConfigResponse(config))
 }
 
@@ -185,6 +191,8 @@ func (h *CveConfigHandler) Delete(c *gin.Context) {
 		utils.RespondWithError(c, http.StatusInternalServerError, errors.New(errors.ErrDatabaseDelete, err.Error()))
 		return
 	}
+
+	h.cronService.SyncCVEConfigs()
 
 	c.Status(http.StatusNoContent)
 }
@@ -210,6 +218,8 @@ func (h *CveConfigHandler) Toggle(c *gin.Context) {
 		utils.RespondWithError(c, http.StatusNotFound, errors.New(errors.ErrResourceNotFound, "Config not found"))
 		return
 	}
+
+	h.cronService.SyncCVEConfigs()
 
 	utils.RespondWithOK(c, http.StatusOK, gin.H{
 		"id":     config.ID,

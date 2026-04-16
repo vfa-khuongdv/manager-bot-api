@@ -11,17 +11,19 @@ import (
 )
 
 type CronService struct {
-	c       *cron.Cron
-	entries map[uint]cron.EntryID
-	db      *gorm.DB
-	lock    sync.Mutex
-	cw      *ChatworkService
+	c          *cron.Cron
+	entries    map[uint]cron.EntryID
+	cveEntries map[string]cron.EntryID
+	db         *gorm.DB
+	lock       sync.Mutex
+	cw         *ChatworkService
 }
 
 type ICronService interface {
 	LoadFromDB()
 	Register(s *models.ReminderSchedule)
 	Remove(scheduleID uint)
+	SyncCVEConfigs()
 	Start()
 	Stop()
 	SyncAll()
@@ -30,10 +32,11 @@ type ICronService interface {
 
 func NewCronService(db *gorm.DB) *CronService {
 	return &CronService{
-		c:       cron.New(cron.WithSeconds()),
-		entries: make(map[uint]cron.EntryID),
-		db:      db,
-		cw:      NewChatworkService(),
+		c:          cron.New(cron.WithSeconds()),
+		entries:    make(map[uint]cron.EntryID),
+		cveEntries: make(map[string]cron.EntryID),
+		db:         db,
+		cw:         NewChatworkService(),
 	}
 }
 
@@ -58,7 +61,7 @@ func (cs *CronService) Register(s *models.ReminderSchedule) {
 	defer cs.lock.Unlock()
 
 	// Remove existing schedule if it exists
-	cs.Remove(s.ID)
+	cs.removeReminderScheduleLocked(s.ID)
 
 	entryID, err := cs.c.AddFunc(s.CronExpression, func() {
 		// Resolve the token to use: prefer bot's token if botId is set
@@ -118,10 +121,50 @@ func (cs *CronService) Register(s *models.ReminderSchedule) {
 }
 
 func (cs *CronService) Remove(scheduleID uint) {
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+	cs.removeReminderScheduleLocked(scheduleID)
+}
+
+func (cs *CronService) removeReminderScheduleLocked(scheduleID uint) {
 	if id, ok := cs.entries[scheduleID]; ok {
 		cs.c.Remove(id)
 		delete(cs.entries, scheduleID)
 	}
+}
+
+func (cs *CronService) SyncCVEConfigs() {
+	logger.Info("[CVE] Synchronizing all CVE config cron jobs")
+
+	var configs []models.CveConfig
+	if err := cs.db.Where("status = ? AND cron <> ''", "active").Find(&configs).Error; err != nil {
+		logger.Errorf("[CVE] Failed to get CVE configs: %v", err)
+		return
+	}
+
+	cs.lock.Lock()
+	for configID, entryID := range cs.cveEntries {
+		cs.c.Remove(entryID)
+		delete(cs.cveEntries, configID)
+	}
+
+	for _, cfg := range configs {
+		configCopy := cfg
+		entryID, err := cs.c.AddFunc(configCopy.Cron, func() {
+			logger.Infof("[CVE] Starting scheduled scan for config %s (%s)", configCopy.Name, configCopy.ID)
+			if err := cveConfigService.TriggerScan(configCopy.ID, uint(configCopy.ProjectID)); err != nil {
+				logger.Errorf("[CVE] Scheduled scan failed for %s: %v", configCopy.ID, err)
+			}
+		})
+		if err != nil {
+			logger.Errorf("[CVE] Failed to register cron for config %s: %v", configCopy.ID, err)
+			continue
+		}
+
+		cs.cveEntries[configCopy.ID] = entryID
+		logger.Infof("[CVE] Registered cron for config %s with schedule %s", configCopy.Name, configCopy.Cron)
+	}
+	cs.lock.Unlock()
 }
 
 // Start begins running the cron scheduler
@@ -150,7 +193,7 @@ func (cs *CronService) SyncAll() {
 
 	for scheduleID := range cs.entries {
 		logger.Infof("Removing existing cron job for schedule ID %d", scheduleID)
-		cs.Remove(scheduleID)
+		cs.removeReminderScheduleLocked(scheduleID)
 	}
 
 	for _, project := range projects {
@@ -201,25 +244,5 @@ func (cs *CronService) RegisterCVEConfigs() {
 		return
 	}
 
-	configs, err := cveConfigService.GetAllForCron()
-	if err != nil {
-		logger.Errorf("[CVE] Failed to get CVE configs: %v", err)
-		return
-	}
-
-	logger.Infof("[CVE] Found %d CVE configs to register", len(configs))
-
-	for _, cfg := range configs {
-		_, err := cs.c.AddFunc(cfg.Cron, func() {
-			logger.Infof("[CVE] Starting scheduled scan for config %s (%s)", cfg.Name, cfg.ID)
-			if err := cveConfigService.TriggerScan(cfg.ID, uint(cfg.ProjectID)); err != nil {
-				logger.Errorf("[CVE] Scheduled scan failed for %s: %v", cfg.ID, err)
-			}
-		})
-		if err != nil {
-			logger.Errorf("[CVE] Failed to register cron for config %s: %v", cfg.ID, err)
-			continue
-		}
-		logger.Infof("[CVE] Registered cron for config %s with schedule %s", cfg.Name, cfg.Cron)
-	}
+	cs.SyncCVEConfigs()
 }

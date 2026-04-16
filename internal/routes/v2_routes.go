@@ -28,7 +28,7 @@ func SetupV2Routes(
 	dashboardHandler := v2.NewDashboardHandlerV2(logService)
 	botHandler := v2.NewBotHandlerV2(botService)
 	botRequestHandler := v2.NewBotRequestHandlerV2(botService)
-	cveConfigHandler := v2.NewCveConfigHandler(cveConfigService)
+	cveConfigHandler := v2.NewCveConfigHandler(cveConfigService, cronService)
 
 	apiV2 := router.Group("/api/v2")
 
