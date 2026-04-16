@@ -478,6 +478,48 @@ Returns aggregated stats for the dashboard.
 
 ---
 
+#### `GET /projects/:projectId/schedules/analysis`
+
+Get analysis for all schedules in a project. Returns aggregated stats for each schedule.
+
+**Path params:**
+
+| Param       | Type     | Description |
+| ----------- | -------- | ----------- |
+| `projectId` | `number` | Project ID  |
+
+**Response `200`:**
+
+```json
+{
+  "data": [
+    {
+      "scheduleId": "sch-001",
+      "scheduleName": "Daily Standup",
+      "status": "active",
+      "lastRun": "2026-04-15T02:00:00Z",
+      "lastStatus": "success",
+      "totalRuns": 30,
+      "successRuns": 28,
+      "failedRuns": 2
+    },
+    {
+      "scheduleId": "sch-002",
+      "scheduleName": "Weekly Report",
+      "status": "paused",
+      "lastRun": "2026-04-10T09:00:00Z",
+      "lastStatus": "failed",
+      "totalRuns": 15,
+      "successRuns": 12,
+      "failedRuns": 3
+    }
+  ],
+  "total": 2
+}
+```
+
+---
+
 ## Security Notes
 
 1. **Admin token** — Issued on `/auth/login` with the gate passcode. Use JWT with short TTL (recommend 8h).

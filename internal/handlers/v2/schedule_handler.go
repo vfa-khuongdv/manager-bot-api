@@ -473,3 +473,44 @@ func buildScheduleResponse(s *models.ReminderSchedule) gin.H {
 		"createdAt":   s.CreatedAt.Format("2006-01-02"),
 	}
 }
+
+func (h *ScheduleHandlerV2) GetAnalysis(c *gin.Context) {
+	projectID, err := parseIDParam(c, "projectId")
+	if err != nil {
+		return
+	}
+
+	if err := h.checkProjectAccess(c, uint(projectID)); err != nil {
+		return
+	}
+
+	analysis, err := h.service.GetAnalysisByProject(uint(projectID))
+	if err != nil {
+		utils.RespondWithError(c, http.StatusInternalServerError, errors.New(errors.ErrDatabaseQuery, err.Error()))
+		return
+	}
+
+	data := make([]gin.H, 0, len(analysis))
+	for _, a := range analysis {
+		item := gin.H{
+			"scheduleId":   a.ScheduleID,
+			"scheduleName": a.ScheduleName,
+			"status":       a.Status,
+			"totalRuns":    a.TotalRuns,
+			"successRuns":  a.SuccessRuns,
+			"failedRuns":   a.FailedRuns,
+		}
+		if a.LastRun != nil {
+			item["lastRun"] = a.LastRun.UTC().Format("2006-01-02T15:04:05Z")
+		}
+		if a.LastStatus != "" {
+			item["lastStatus"] = a.LastStatus
+		}
+		data = append(data, item)
+	}
+
+	utils.RespondWithOK(c, http.StatusOK, gin.H{
+		"data":  data,
+		"total": len(data),
+	})
+}

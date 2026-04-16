@@ -1,10 +1,21 @@
 package repositories
 
 import (
+	"time"
+
 	"github.com/vfa-khuongdv/golang-cms/internal/models"
 	"github.com/vfa-khuongdv/golang-cms/internal/utils"
 	"gorm.io/gorm"
 )
+
+type ScheduleAnalysisRaw struct {
+	ScheduleID  uint
+	LastRun     *time.Time
+	LastStatus  string
+	TotalRuns   int64
+	SuccessRuns int64
+	FailedRuns  int64
+}
 
 type IScheduleLogRepository interface {
 	GetDashboardData() (*models.DashboardData, error)
@@ -12,6 +23,7 @@ type IScheduleLogRepository interface {
 	ListByProject(projectID uint, filters map[string]interface{}, paging *utils.Paging) ([]models.RunLogV2, int64, error)
 	ListBySchedule(scheduleID uint, filters map[string]interface{}, paging *utils.Paging) ([]models.RunLogV2, int64, error)
 	GetV2Summary() (*models.V2DashboardSummary, error)
+	GetAnalysisByProject(projectID uint) ([]ScheduleAnalysisRaw, error)
 }
 
 type ScheduleLogRepository struct {
@@ -161,4 +173,26 @@ func (r *ScheduleLogRepository) GetV2Summary() (*models.V2DashboardSummary, erro
 	}
 
 	return &summary, nil
+}
+
+func (r *ScheduleLogRepository) GetAnalysisByProject(projectID uint) ([]ScheduleAnalysisRaw, error) {
+	var results []ScheduleAnalysisRaw
+
+	err := r.db.Model(&models.ScheduleLog{}).
+		Select("schedule_id, MAX(created_at) as last_run, MAX(status) as last_status, COUNT(*) as total_runs, SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_runs, SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) as failed_runs").
+		Where("project_id = ?", projectID).
+		Group("schedule_id").
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range results {
+		results[i].SuccessRuns = results[i].TotalRuns - results[i].FailedRuns
+		results[i].FailedRuns = results[i].FailedRuns
+		results[i].TotalRuns = results[i].SuccessRuns + results[i].FailedRuns
+	}
+
+	return results, nil
 }

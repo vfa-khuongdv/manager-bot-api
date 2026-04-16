@@ -19,6 +19,7 @@ func SetupV2Routes(
 	cronService services.ICronService,
 	chatworkService services.IChatworkService,
 	botService services.IChatworkBotService,
+	cveConfigService services.ICveConfigService,
 ) {
 	authHandler := v2.NewAuthHandler()
 	projectHandler := v2.NewProjectHandlerV2(projectService, cronService)
@@ -27,6 +28,7 @@ func SetupV2Routes(
 	dashboardHandler := v2.NewDashboardHandlerV2(logService)
 	botHandler := v2.NewBotHandlerV2(botService)
 	botRequestHandler := v2.NewBotRequestHandlerV2(botService)
+	cveConfigHandler := v2.NewCveConfigHandler(cveConfigService)
 
 	apiV2 := router.Group("/api/v2")
 
@@ -39,6 +41,9 @@ func SetupV2Routes(
 	apiV2.GET("/health/chatwork", handlers.GetChatworkHealth)
 	apiV2.GET("/health/server", handlers.GetServerHealth)
 	apiV2.GET("/health/database", handlers.GetDatabaseHealth)
+
+	// ── Public: CVE Test ─────────────────────────────────────────────────
+	apiV2.POST("/cve/test", cveConfigHandler.TestPublic)
 
 	// ── JWT-protected routes ───────────────────────────────────────────────────
 	jwt := apiV2.Group("")
@@ -82,5 +87,20 @@ func SetupV2Routes(
 		projectScoped.PATCH("/projects/:projectId/schedules/:scheduleId", scheduleHandler.Update)
 		projectScoped.PATCH("/projects/:projectId/schedules/:scheduleId/toggle", scheduleHandler.Toggle)
 		projectScoped.DELETE("/projects/:projectId/schedules/:scheduleId", scheduleHandler.Delete)
+		projectScoped.GET("/projects/:projectId/schedules/analysis", scheduleHandler.GetAnalysis)
+
+		// CVE Configs
+		projectScoped.GET("/projects/:projectId/cve-configs", cveConfigHandler.GetByProject)
+		projectScoped.POST("/projects/:projectId/cve-configs", cveConfigHandler.Create)
+		projectScoped.PUT("/projects/:projectId/cve-configs/:configId", cveConfigHandler.Update)
+		projectScoped.DELETE("/projects/:projectId/cve-configs/:configId", cveConfigHandler.Delete)
+		projectScoped.POST("/projects/:projectId/cve-configs/:configId/toggle", cveConfigHandler.Toggle)
+		projectScoped.POST("/projects/:projectId/cve-configs/:configId/scan", cveConfigHandler.Scan)
+		projectScoped.GET("/projects/:projectId/cve-configs/:configId/vulnerabilities", cveConfigHandler.GetVulnerabilities)
+		projectScoped.GET("/projects/:projectId/cve-configs/:configId/logs", cveConfigHandler.GetScanLogs)
+		projectScoped.POST("/projects/:projectId/cve/test", cveConfigHandler.Test)
+
+		// CVE Analysis
+		projectScoped.GET("/projects/:projectId/cve/analysis", cveConfigHandler.GetAnalysis)
 	}
 }

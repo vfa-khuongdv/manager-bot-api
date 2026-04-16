@@ -245,53 +245,6 @@ type CVEItem struct {
 	Description string
 }
 
-func (s *CveCrawlerService) formatMessageByScore(items []CVEItem, date time.Time) string {
-	if len(items) == 0 {
-		return ""
-	}
-
-	criticalCount := 0
-	highCount := 0
-
-	for _, item := range items {
-		if item.Severity == "CRITICAL" {
-			criticalCount++
-		} else {
-			highCount++
-		}
-	}
-
-	var sb strings.Builder
-
-	sb.WriteString(fmt.Sprintf("[info][title]🚨 DAILY CVE ALERT - %s[/title]\n", date.Format("02/01/2006")))
-	sb.WriteString(fmt.Sprintf("📊 Tổng: 🔴 CRITICAL: %d | 🟠 HIGH: %d\n\n", criticalCount, highCount))
-
-	sb.WriteString(fmt.Sprintf("🔴 CRITICAL (%d):\n", criticalCount))
-	for _, item := range items {
-		if item.Severity == "CRITICAL" {
-			sb.WriteString(fmt.Sprintf("• %s - SCORE: %.1f\n", item.ID, item.BaseScore))
-			sb.WriteString(fmt.Sprintf("  %s\n", item.Description))
-			sb.WriteString(fmt.Sprintf("  🔗 https://nvd.nist.gov/vuln/detail/%s\n", item.ID))
-			sb.WriteString("[hr]\n")
-		}
-	}
-
-	sb.WriteString(fmt.Sprintf("🟠 HIGH (%d):\n", highCount))
-	for _, item := range items {
-		if item.Severity == "HIGH" {
-			sb.WriteString(fmt.Sprintf("• %s - SCORE: %.1f\n", item.ID, item.BaseScore))
-			sb.WriteString(fmt.Sprintf("  %s\n", item.Description))
-			sb.WriteString(fmt.Sprintf("  🔗 https://nvd.nist.gov/vuln/detail/%s\n", item.ID))
-			sb.WriteString("[hr]\n")
-		}
-	}
-
-	sb.WriteString("📧 Powered by CVE Crawler\n")
-	sb.WriteString("[/info]")
-
-	return sb.String()
-}
-
 func (s *CveCrawlerService) formatMessagesByBatch(items []CVEItem, date time.Time) []string {
 	if len(items) == 0 {
 		return nil

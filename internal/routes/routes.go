@@ -23,14 +23,17 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 	reminderScheduleRepo := repositories.NewReminderScheduleRepository(db)
 	scheduleLogRepo := repositories.NewScheduleLogRepository(db)
 	chatworkBotRepo := repositories.NewChatworkBotRepository(db)
+	cveConfigRepo := repositories.NewCveConfigRepository(db)
+	cveScanLogRepo := repositories.NewCveScanLogRepository(db)
 
 	// Services
 	projectService := services.NewProjectService(projectRepo)
-	reminderScheduleService := services.NewReminderScheduleService(reminderScheduleRepo)
+	reminderScheduleService := services.NewReminderScheduleService(reminderScheduleRepo, scheduleLogRepo)
 	chatworkService := services.NewChatworkService()
 	hookService := services.NewHookService(chatworkService)
 	scheduleLogService := services.NewScheduleLogService(scheduleLogRepo)
 	botService := services.NewChatworkBotService(chatworkBotRepo, reminderScheduleRepo)
+	cveConfigService := services.NewCveConfigService(cveConfigRepo, cveScanLogRepo, chatworkBotRepo)
 
 	// Handlers
 	hookHandler := handlers.NewHookHandler(chatworkService, hookService)
@@ -55,7 +58,7 @@ func SetupRouter(db *gorm.DB, cronService *services.CronService) *gin.Engine {
 	api.POST("/hooks/slack", hookHandler.SlackHook)
 
 	// Setup V2 routes
-	SetupV2Routes(router, projectService, reminderScheduleService, scheduleLogService, cronService, chatworkService, botService)
+	SetupV2Routes(router, projectService, reminderScheduleService, scheduleLogService, cronService, chatworkService, botService, cveConfigService)
 
 	return router
 }

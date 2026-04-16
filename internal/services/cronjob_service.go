@@ -164,17 +164,22 @@ func (cs *CronService) SyncAll() {
 
 const cveJobEntryID = 99999
 
+var cveConfigService *CveConfigService
+
+func SetCveConfigService(svc *CveConfigService) {
+	cveConfigService = svc
+}
+
 func (cs *CronService) RegisterCVECrawler() {
 	roomID := utils.GetEnv("CVE_CHATWORK_ROOM_ID", "")
 	apiKey := utils.GetEnv("CVE_CHATWORK_API_KEY", "")
-	nvdAPIKey := utils.GetEnv("NVD_API_KEY", "")
 
 	if roomID == "" || apiKey == "" {
 		logger.Warn("[CVE] CVE_CHATWORK_ROOM_ID or CVE_CHATWORK_API_KEY not configured, skipping CVE crawler job")
 		return
 	}
 
-	cveService := NewCveCrawlerService(roomID, apiKey, nvdAPIKey)
+	cveService := NewCveCrawlerService(roomID, apiKey, "")
 
 	_, err := cs.c.AddFunc("0 0 0 * * *", func() {
 		logger.Info("[CVE] Starting daily CVE crawl job")
@@ -188,4 +193,33 @@ func (cs *CronService) RegisterCVECrawler() {
 
 	cs.entries[cveJobEntryID] = cron.EntryID(cveJobEntryID)
 	logger.Info("[CVE] CVE crawler job registered successfully (runs daily at 00:00 UTC / 07:00 GMT+7)")
+}
+
+func (cs *CronService) RegisterCVEConfigs() {
+	if cveConfigService == nil {
+		logger.Warn("[CVE] CVE config service not set, skipping CVE config cron jobs")
+		return
+	}
+
+	configs, err := cveConfigService.GetAllForCron()
+	if err != nil {
+		logger.Errorf("[CVE] Failed to get CVE configs: %v", err)
+		return
+	}
+
+	logger.Infof("[CVE] Found %d CVE configs to register", len(configs))
+
+	for _, cfg := range configs {
+		_, err := cs.c.AddFunc(cfg.Cron, func() {
+			logger.Infof("[CVE] Starting scheduled scan for config %s (%s)", cfg.Name, cfg.ID)
+			if err := cveConfigService.TriggerScan(cfg.ID, uint(cfg.ProjectID)); err != nil {
+				logger.Errorf("[CVE] Scheduled scan failed for %s: %v", cfg.ID, err)
+			}
+		})
+		if err != nil {
+			logger.Errorf("[CVE] Failed to register cron for config %s: %v", cfg.ID, err)
+			continue
+		}
+		logger.Infof("[CVE] Registered cron for config %s with schedule %s", cfg.Name, cfg.Cron)
+	}
 }

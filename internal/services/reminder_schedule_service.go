@@ -1,17 +1,32 @@
 package services
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/vfa-khuongdv/golang-cms/internal/models"
 	"github.com/vfa-khuongdv/golang-cms/internal/repositories"
 	"github.com/vfa-khuongdv/golang-cms/internal/utils"
 	"github.com/vfa-khuongdv/golang-cms/pkg/errors"
 )
 
+type ScheduleAnalysis struct {
+	ScheduleID   string     `json:"scheduleId"`
+	ScheduleName string     `json:"scheduleName"`
+	Status       string     `json:"status"`
+	LastRun      *time.Time `json:"lastRun,omitempty"`
+	LastStatus   string     `json:"lastStatus"`
+	TotalRuns    int64      `json:"totalRuns"`
+	SuccessRuns  int64      `json:"successRuns"`
+	FailedRuns   int64      `json:"failedRuns"`
+}
+
 type IReminderScheduleService interface {
 	GetAll(paging *utils.Paging) ([]models.ReminderSchedule, error)
 	GetByID(id uint) (*models.ReminderSchedule, error)
 	GetByProjectID(projectID uint) ([]models.ReminderSchedule, error)
 	GetByProjectIDPaged(projectID uint, status string, paging *utils.Paging) ([]models.ReminderSchedule, int64, error)
+	GetAnalysisByProject(projectID uint) ([]ScheduleAnalysis, error)
 	Create(schedule *models.ReminderSchedule) error
 	Update(schedule *models.ReminderSchedule) error
 	Delete(id uint) error
@@ -20,7 +35,8 @@ type IReminderScheduleService interface {
 }
 
 type ReminderScheduleService struct {
-	repo repositories.IReminderScheduleRepository
+	repo    repositories.IReminderScheduleRepository
+	logRepo repositories.IScheduleLogRepository
 }
 
 // NewReminderScheduleService creates a new instance of ReminderScheduleService
@@ -29,9 +45,10 @@ type ReminderScheduleService struct {
 //
 // Returns:
 //   - *ReminderScheduleService: new instance of the service
-func NewReminderScheduleService(repo repositories.IReminderScheduleRepository) *ReminderScheduleService {
+func NewReminderScheduleService(repo repositories.IReminderScheduleRepository, logRepo repositories.IScheduleLogRepository) *ReminderScheduleService {
 	return &ReminderScheduleService{
-		repo: repo,
+		repo:    repo,
+		logRepo: logRepo,
 	}
 }
 
@@ -177,4 +194,46 @@ func (service *ReminderScheduleService) GetByProjectIDPaged(projectID uint, stat
 		return nil, 0, errors.New(errors.ErrDatabaseQuery, err.Error())
 	}
 	return schedules, total, nil
+}
+
+func (service *ReminderScheduleService) GetAnalysisByProject(projectID uint) ([]ScheduleAnalysis, error) {
+	schedules, err := service.repo.GetByProjectID(projectID)
+	if err != nil {
+		return nil, errors.New(errors.ErrDatabaseQuery, err.Error())
+	}
+
+	logStats, err := service.logRepo.GetAnalysisByProject(projectID)
+	if err != nil {
+		return nil, errors.New(errors.ErrDatabaseQuery, err.Error())
+	}
+
+	logMap := make(map[uint]repositories.ScheduleAnalysisRaw)
+	for _, ls := range logStats {
+		logMap[ls.ScheduleID] = ls
+	}
+
+	var result []ScheduleAnalysis
+	for _, sch := range schedules {
+		status := "active"
+		if !sch.Active {
+			status = "paused"
+		}
+		analysis := ScheduleAnalysis{
+			ScheduleID:   fmt.Sprintf("%d", sch.ID),
+			ScheduleName: sch.Name,
+			Status:       status,
+		}
+
+		if log, ok := logMap[sch.ID]; ok {
+			analysis.LastRun = log.LastRun
+			analysis.LastStatus = log.LastStatus
+			analysis.TotalRuns = log.TotalRuns
+			analysis.SuccessRuns = log.SuccessRuns
+			analysis.FailedRuns = log.FailedRuns
+		}
+
+		result = append(result, analysis)
+	}
+
+	return result, nil
 }
