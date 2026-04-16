@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/vfa-khuongdv/golang-cms/internal/configs"
+	"github.com/vfa-khuongdv/golang-cms/internal/repositories"
 	"github.com/vfa-khuongdv/golang-cms/internal/routes"
 	"github.com/vfa-khuongdv/golang-cms/internal/services"
 	"github.com/vfa-khuongdv/golang-cms/internal/utils"
@@ -66,6 +67,15 @@ func main() {
 	cronService := services.NewCronService(db)
 	cronService.LoadFromDB()
 	cronService.RegisterCVECrawler()
+
+	// Register CVE config cron jobs
+	cveConfigRepo := repositories.NewCveConfigRepository(db)
+	cveScanLogRepo := repositories.NewCveScanLogRepository(db)
+	chatworkBotRepo := repositories.NewChatworkBotRepository(db)
+	cveConfigService := services.NewCveConfigService(cveConfigRepo, cveScanLogRepo, chatworkBotRepo)
+	services.SetCveConfigService(cveConfigService)
+	cronService.RegisterCVEConfigs()
+
 	cronService.Start()
 
 	// Setup routes
