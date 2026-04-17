@@ -7,6 +7,17 @@ import (
 	"gorm.io/gorm"
 )
 
+type RecentScanResult struct {
+	ID          string `json:"id"`
+	ConfigName  string `json:"configName"`
+	ConfigID    string `json:"configId"`
+	ProjectID   int    `json:"projectId"`
+	ProjectName string `json:"projectName"`
+	LastScan    string `json:"lastScan"`
+	VulnCount   int    `json:"vulnCount"`
+	Status      string `json:"status"`
+}
+
 type ICveScanLogRepository interface {
 	Create(log *models.CveScanLog) (*models.CveScanLog, error)
 	Update(log *models.CveScanLog) (*models.CveScanLog, error)
@@ -15,6 +26,7 @@ type ICveScanLogRepository interface {
 	DeleteVulnerabilitiesByScanLogID(scanLogID uint) error
 	GetLatestByConfigIDs(configIDs []string) ([]models.CveScanLog, error)
 	GetVulnerabilitiesByScanLogIDs(scanLogIDs []uint) (map[uint][]models.Vulnerability, error)
+	GetRecentScans(limit int) ([]RecentScanResult, int64, error)
 }
 
 type CveScanLogRepository struct {
@@ -108,4 +120,42 @@ func (repo *CveScanLogRepository) GetVulnerabilitiesByScanLogIDs(scanLogIDs []ui
 	}
 
 	return result, nil
+}
+
+func (repo *CveScanLogRepository) GetRecentScans(limit int) ([]RecentScanResult, int64, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	var results []RecentScanResult
+
+	subQuery := repo.db.Model(&models.CveScanLog{}).
+		Select("config_id, MAX(created_at) as last_created").
+		Group("config_id")
+
+	var total int64
+	if err := repo.db.Model(&models.CveScanLog{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := repo.db.Table("(?) as latest", subQuery).
+		Select("sl.id, cc.name as config_name, cc.id as config_id, cc.project_id, p.name as project_name, sl.created_at as last_scan, sl.vuln_found_count as vuln_count, sl.status").
+		Joins("JOIN cve_scan_logs sl ON sl.config_id = latest.config_id AND sl.created_at = latest.last_created").
+		Joins("JOIN cve_configs cc ON cc.id = sl.config_id").
+		Joins("JOIN projects p ON p.id = cc.project_id").
+		Order("sl.created_at DESC").
+		Limit(limit).
+		Find(&results).Error; err != nil {
+		logger.Error("GetRecentScans query failed: ", err)
+		return nil, 0, err
+	}
+
+	for i := range results {
+		results[i].LastScan = results[i].LastScan
+	}
+
+	return results, total, nil
 }

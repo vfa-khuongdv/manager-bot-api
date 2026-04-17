@@ -41,13 +41,21 @@ type DashboardData struct {
 
 // V2DashboardSummary provides aggregated stats for V2 dashboard
 type V2DashboardSummary struct {
-	ActiveProjects   int64   `json:"activeProjects"`
-	InactiveProjects int64   `json:"inactiveProjects"`
-	TotalSchedules   int64   `json:"totalSchedules"`
-	ActiveSchedules  int64   `json:"activeSchedules"`
-	SuccessRuns      int64   `json:"successRuns"`
-	FailedRuns       int64   `json:"failedRuns"`
-	SuccessRate      float64 `json:"successRate"`
+	ActiveProjects       int64   `json:"activeProjects"`
+	InactiveProjects     int64   `json:"inactiveProjects"`
+	TotalSchedules       int64   `json:"totalSchedules"`
+	ActiveSchedules      int64   `json:"activeSchedules"`
+	SuccessRuns          int64   `json:"successRuns"`
+	FailedRuns           int64   `json:"failedRuns"`
+	SuccessRate          float64 `json:"successRate"`
+	TotalCveConfigs      int64   `json:"totalCveConfigs"`
+	ActiveCveMonitoring  int64   `json:"activeCveMonitoring"`
+	TotalVulnerabilities int64   `json:"totalVulnerabilities"`
+	SecureConfigs        int64   `json:"secureConfigs"`
+	CriticalVulns        int64   `json:"criticalVulns"`
+	HighVulns            int64   `json:"highVulns"`
+	ModerateVulns        int64   `json:"moderateVulns"`
+	LowVulns             int64   `json:"lowVulns"`
 }
 
 // RunLogV2 is the V2 API response shape for a run log entry

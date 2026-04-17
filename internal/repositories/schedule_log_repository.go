@@ -172,6 +172,67 @@ func (r *ScheduleLogRepository) GetV2Summary() (*models.V2DashboardSummary, erro
 		summary.SuccessRate = float64(summary.SuccessRuns) / float64(total) * 100
 	}
 
+	if err := r.db.Model(&models.CveConfig{}).Count(&summary.TotalCveConfigs).Error; err != nil {
+		return nil, err
+	}
+	if err := r.db.Model(&models.CveConfig{}).Where("status = ?", "active").Count(&summary.ActiveCveMonitoring).Error; err != nil {
+		return nil, err
+	}
+
+	subQuery := r.db.Model(&models.CveScanLog{}).
+		Select("config_id, MAX(created_at) as last_scan").
+		Where("config_id IN (?)", r.db.Model(&models.CveConfig{}).Where("status = ?", "active").Select("id")).
+		Group("config_id")
+
+	var vulnSummary struct {
+		TotalVulns  int64
+		SecureCount int64
+	}
+
+	if err := r.db.Table("(?) as latest", subQuery).
+		Select("COALESCE(SUM(sl.vuln_found_count), 0) as total_vulns, COALESCE(SUM(CASE WHEN sl.status = 'success' AND sl.vuln_found_count = 0 THEN 1 ELSE 0 END), 0) as secure_count").
+		Joins("JOIN cve_scan_logs sl ON sl.config_id = latest.config_id AND sl.created_at = latest.last_scan").
+		Scan(&vulnSummary).Error; err != nil {
+		return nil, err
+	}
+	summary.TotalVulnerabilities = vulnSummary.TotalVulns
+	summary.SecureConfigs = vulnSummary.SecureCount
+
+	type VulnCount struct {
+		Severity string
+		Count    int64
+	}
+	var severityCounts []VulnCount
+
+	subQuery2 := r.db.Model(&models.CveScanLog{}).
+		Select("config_id, MAX(created_at) as last_scan").
+		Where("config_id IN (?)", r.db.Model(&models.CveConfig{}).Where("status = ?", "active").Select("id")).
+		Group("config_id")
+
+	if err := r.db.Table("(?) as latest", subQuery2).
+		Select("vuln.severity, COUNT(*) as count").
+		Joins("JOIN cve_scan_logs sl ON sl.config_id = latest.config_id AND sl.created_at = latest.last_scan").
+		Joins("JOIN vulnerabilities vuln ON vuln.scan_log_id = sl.id").
+		Group("vuln.severity").
+		Scan(&severityCounts).Error; err != nil {
+		return nil, err
+	}
+
+	for _, v := range severityCounts {
+		switch v.Severity {
+		case "CRITICAL":
+			summary.CriticalVulns = v.Count
+		case "HIGH":
+			summary.HighVulns = v.Count
+		case "MODERATE":
+			summary.ModerateVulns = v.Count
+		case "LOW":
+			summary.LowVulns = v.Count
+		default:
+			summary.ModerateVulns += v.Count
+		}
+	}
+
 	return &summary, nil
 }
 

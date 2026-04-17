@@ -58,8 +58,21 @@ Returned by `GET /bot-requests`. Fetched live from Chatwork `GET /v2/incoming_re
 | `id`        | `string`    | Composite ID: `"{dbBotID}_{cwRequestID}"` — used for accept/delete routing        |
 | `botId`     | `number`    | Internal DB bot ID that received this request                                     |
 | `botInfo`   | `BotDetail` | Nested bot details                                                                |
+| `senderInfo`| `SenderInfo`| Sender details from Chatwork API                                                  |
+| `message`  | `string`    | Message from the sender                                                           |
 | `status`    | `string`    | Always `"pending"` — accepted/rejected requests are removed by Chatwork           |
 | `createdAt` | `string`    | ISO 8601 timestamp (set at fetch time — Chatwork API does not return `createdAt`) |
+
+### `SenderInfo` (API response)
+
+| Field              | Type      | Description                    |
+| ------------------ | --------- | ------------------------------ |
+| `accountId`       | `number`  | Chatwork Account ID            |
+| `name`            | `string`  | Display name                   |
+| `chatworkId`      | `string`  | Chatwork handle                |
+| `organizationName`| `string?` | Organization name              |
+| `department`      | `string?` | Department                     |
+| `avatarImageUrl`  | `string?` | Avatar image URL               |
 
 ---
 

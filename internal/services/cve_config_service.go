@@ -26,6 +26,7 @@ type ICveConfigService interface {
 	TestScan(languages string) ([]models.Vulnerability, error)
 	GetScanLogs(configID string, projectID uint, paging *utils.Paging) ([]models.CveScanLog, int64, error)
 	GetAnalysisByProject(projectID uint) ([]CveAnalysis, error)
+	GetRecentScans(limit int) ([]repositories.RecentScanResult, int64, error)
 }
 
 type CveAnalysis struct {
@@ -94,7 +95,7 @@ type CveConfigForCron struct {
 	ApiKey           string
 	NotifyOnCritical bool
 	NotifyOnHigh     bool
-	NotifyOnMedium   bool
+	NotifyOnModerate bool
 	NotifyOnLow      bool
 }
 
@@ -120,7 +121,7 @@ func (s *CveConfigService) GetAllForCron() ([]CveConfigForCron, error) {
 			ApiKey:           cfg.ApiKey,
 			NotifyOnCritical: cfg.NotifyOnCritical,
 			NotifyOnHigh:     cfg.NotifyOnHigh,
-			NotifyOnMedium:   cfg.NotifyOnMedium,
+			NotifyOnModerate: cfg.NotifyOnModerate,
 			NotifyOnLow:      cfg.NotifyOnLow,
 		})
 	}
@@ -140,7 +141,7 @@ type CveConfigInput struct {
 	NotifyRoomId     string `json:"notifyRoomId"`
 	NotifyOnCritical bool   `json:"notifyOnCritical"`
 	NotifyOnHigh     bool   `json:"notifyOnHigh"`
-	NotifyOnMedium   bool   `json:"notifyOnMedium"`
+	NotifyOnModerate bool   `json:"notifyOnModerate"`
 	NotifyOnLow      bool   `json:"notifyOnLow"`
 }
 
@@ -157,7 +158,7 @@ type CveConfigUpdateInput struct {
 	NotifyRoomId     *string `json:"notifyRoomId"`
 	NotifyOnCritical *bool   `json:"notifyOnCritical"`
 	NotifyOnHigh     *bool   `json:"notifyOnHigh"`
-	NotifyOnMedium   *bool   `json:"notifyOnMedium"`
+	NotifyOnModerate *bool   `json:"notifyOnModerate"`
 	NotifyOnLow      *bool   `json:"notifyOnLow"`
 }
 
@@ -194,7 +195,7 @@ func (s *CveConfigService) Create(projectID uint, input *CveConfigInput) (*model
 		NotifyRoomId:     input.NotifyRoomId,
 		NotifyOnCritical: input.NotifyOnCritical,
 		NotifyOnHigh:     input.NotifyOnHigh,
-		NotifyOnMedium:   input.NotifyOnMedium,
+		NotifyOnModerate: input.NotifyOnModerate,
 		NotifyOnLow:      input.NotifyOnLow,
 	}
 
@@ -243,8 +244,8 @@ func (s *CveConfigService) Update(id string, projectID uint, input *CveConfigUpd
 	if input.NotifyOnHigh != nil {
 		config.NotifyOnHigh = *input.NotifyOnHigh
 	}
-	if input.NotifyOnMedium != nil {
-		config.NotifyOnMedium = *input.NotifyOnMedium
+	if input.NotifyOnModerate != nil {
+		config.NotifyOnModerate = *input.NotifyOnModerate
 	}
 	if input.NotifyOnLow != nil {
 		config.NotifyOnLow = *input.NotifyOnLow
@@ -386,8 +387,8 @@ func filterVulnerabilitiesBySeverity(vulns []models.Vulnerability, config *model
 			if config.NotifyOnHigh {
 				filtered = append(filtered, v)
 			}
-		case "medium":
-			if config.NotifyOnMedium {
+		case "moderate":
+			if config.NotifyOnModerate {
 				filtered = append(filtered, v)
 			}
 		case "low":
@@ -407,20 +408,20 @@ func formatCVEMessage(config *models.CveConfig, vulns []models.Vulnerability) st
 
 	if len(vulns) > 0 {
 		emoji = "🚨"
-		crit, high, medium, low := 0, 0, 0, 0
+		crit, high, moderate, low := 0, 0, 0, 0
 		for _, v := range vulns {
 			switch strings.ToLower(v.Severity) {
 			case "critical":
 				crit++
 			case "high":
 				high++
-			case "medium":
-				medium++
+			case "moderate":
+				moderate++
 			case "low":
 				low++
 			}
 		}
-		status = fmt.Sprintf("%d Vulns | C:%d H:%d M:%d L:%d", len(vulns), crit, high, medium, low)
+		status = fmt.Sprintf("%d Vulns | C:%d H:%d M:%d L:%d", len(vulns), crit, high, moderate, low)
 	}
 
 	msg := fmt.Sprintf("[info][title]%s CVE Scan Result[/title]", emoji)
@@ -485,7 +486,7 @@ func (s *CveConfigService) TestScan(languages string) ([]models.Vulnerability, e
 
 	var vulns []models.Vulnerability
 	for i, result := range osvResp.Results {
-		if result.Vulns == nil || len(result.Vulns) == 0 {
+		if len(result.Vulns) == 0 {
 			continue
 		}
 		if i >= len(queries) {
@@ -626,6 +627,10 @@ func (s *CveConfigService) GetAnalysisByProject(projectID uint) ([]CveAnalysis, 
 	return result, nil
 }
 
+func (s *CveConfigService) GetRecentScans(limit int) ([]repositories.RecentScanResult, int64, error) {
+	return s.logRepo.GetRecentScans(limit)
+}
+
 func (s *CveConfigService) scanConfig(config *models.CveConfig) ([]models.Vulnerability, error) {
 	queries, err := parseLanguages(config.Languages)
 	if err != nil {
@@ -647,7 +652,7 @@ func (s *CveConfigService) scanConfig(config *models.CveConfig) ([]models.Vulner
 
 	var vulns []models.Vulnerability
 	for i, result := range osvResp.Results {
-		if result.Vulns == nil || len(result.Vulns) == 0 {
+		if len(result.Vulns) == 0 {
 			continue
 		}
 		if i >= len(queries) {
@@ -657,9 +662,6 @@ func (s *CveConfigService) scanConfig(config *models.CveConfig) ([]models.Vulner
 		for _, v := range result.Vulns {
 			details := getVulnDetails(v.ID)
 			severity := extractSeverity(details)
-			if severity == "" {
-				severity = "medium"
-			}
 			summary := v.Summary
 			refURL := ""
 			if details.Summary != "" {
@@ -916,6 +918,7 @@ func getVulnDetails(id string) OSVVuln {
 	return vuln
 }
 
+// decrepated: remove in the future, as severity extraction should rely on database_specific or CVSS vector parsing
 func extractScore(v OSVVuln) float64 {
 	// Try database_specific first - severity maps to score reliably
 	if v.DatabaseSpecific != nil {

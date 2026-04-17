@@ -21,7 +21,7 @@ type CveConfig struct {
 	NotifyRoomId         string         `gorm:"type:varchar(255)" json:"notifyRoomId,omitempty"`
 	NotifyOnCritical     bool           `gorm:"default:true" json:"notifyOnCritical"`
 	NotifyOnHigh         bool           `gorm:"default:true" json:"notifyOnHigh"`
-	NotifyOnMedium       bool           `gorm:"default:false" json:"notifyOnMedium"`
+	NotifyOnModerate     bool           `gorm:"default:false" json:"notifyOnModerate"`
 	NotifyOnLow          bool           `gorm:"default:false" json:"notifyOnLow"`
 	LastScan             *time.Time     `json:"lastScan,omitempty"`
 	LastStatus           string         `gorm:"type:varchar(20);default:'no_scan'" json:"lastStatus"`
@@ -31,24 +31,6 @@ type CveConfig struct {
 	DeletedAt            gorm.DeletedAt `json:"deletedAt,omitempty" gorm:"index"`
 }
 
-type Vulnerability struct {
-	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	ScanLogID    uint      `gorm:"not null;index:idx_vuln_scan_log_id" json:"scanLogId"`
-	ConfigID     string    `gorm:"type:varchar(36);not null;index" json:"configId"`
-	CVEID        string    `gorm:"type:varchar(50);not null;index" json:"cveId"`
-	Severity     string    `gorm:"type:varchar(20);not null" json:"severity"`
-	Package      string    `gorm:"type:varchar(255);not null" json:"package"`
-	Version      string    `gorm:"type:varchar(100);not null" json:"version"`
-	Summary      string    `gorm:"type:text" json:"summary,omitempty"`
-	Score        float64   `gorm:"type:decimal(5,2)" json:"score,omitempty"`
-	ReferenceURL string    `gorm:"type:varchar(500)" json:"referenceUrl,omitempty"`
-	CreatedAt    time.Time `json:"createdAt"`
-}
-
 func (CveConfig) TableName() string {
 	return "cve_configs"
-}
-
-func (Vulnerability) TableName() string {
-	return "vulnerabilities"
 }

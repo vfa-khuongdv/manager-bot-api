@@ -460,7 +460,7 @@ List run logs for a specific schedule.
 
 #### `GET /dashboard/summary`
 
-Returns aggregated stats for the dashboard.
+Returns aggregated stats for the dashboard including schedule runs and CVE scanner data.
 
 **Response `200`:**
 
@@ -472,9 +472,92 @@ Returns aggregated stats for the dashboard.
   "activeSchedules": 6,
   "successRuns": 9,
   "failedRuns": 3,
-  "successRate": 75
+  "successRate": 75,
+  "totalCveConfigs": 24,
+  "activeCveMonitoring": 18,
+  "totalVulnerabilities": 156,
+  "secureConfigs": 8,
+  "criticalVulns": 12,
+  "highVulns": 34,
+  "moderateVulns": 67,
+  "lowVulns": 43
 }
 ```
+
+**Response Fields:**
+
+| Field                   | Type      | Description                           |
+| ----------------------  | --------- | ------------------------------------ |
+| `activeProjects`       | `int`     | Number of active projects            |
+| `inactiveProjects`     | `int`     | Number of inactive projects          |
+| `totalSchedules`        | `int`     | Total schedule configs               |
+| `activeSchedules`      | `int`     | Number of active schedules           |
+| `successRuns`          | `int`     | Total successful schedule runs       |
+| `failedRuns`           | `int`     | Total failed schedule runs           |
+| `successRate`          | `float`   | Success rate percentage              |
+| `totalCveConfigs`      | `int`     | Total CVE scanner configs (all projects) |
+| `activeCveMonitoring`  | `int`     | Number of active CVE configs         |
+| `totalVulnerabilities` | `int`     | Sum of all vulnerabilities found     |
+| `secureConfigs`        | `int`     | CVE configs with 0 vulnerabilities   |
+| `criticalVulns`       | `int`     | Critical severity vulnerabilities     |
+| `highVulns`           | `int`     | High severity vulnerabilities        |
+| `moderateVulns`       | `int`     | Moderate severity vulnerabilities      |
+| `lowVulns`            | `int`     | Low severity vulnerabilities        |
+
+---
+
+#### `GET /dashboard/cve-recent-scans`
+
+Get recent CVE scan results across all projects. Returns last 10 scans.
+
+**Query params:**
+
+| Param    | Type    | Default | Description |
+| -------- | ------- | ------- | ------------|
+| `limit`  | `int`   | 10      | Number of results (max 50) |
+
+**Response `200`:**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "configName": "Frontend Core",
+      "configId": "uuid-123",
+      "projectId": 1,
+      "projectName": "Web App",
+      "lastScan": "2026-04-17T10:30:00Z",
+      "vulnCount": 3,
+      "status": "failed"
+    },
+    {
+      "id": 2,
+      "configName": "Backend API",
+      "configId": "uuid-456",
+      "projectId": 1,
+      "projectName": "Web App",
+      "lastScan": "2026-04-17T09:00:00Z",
+      "vulnCount": 0,
+      "status": "success"
+    }
+  ],
+  "total": 24
+}
+```
+
+**Response Fields:**
+
+| Field          | Type      | Description                          |
+| -------------- | --------- | ------------------------------------ |
+| `id`           | `int`     | Scan log ID (auto-increment)         |
+| `configName`  | `string`  | CVE config name                      |
+| `configId`     | `string`  | CVE config UUID                      |
+| `projectId`    | `int`     | Project ID                           |
+| `projectName`  | `string`  | Project name                         |
+| `lastScan`     | `datetime`| Last scan timestamp                  |
+| `vulnCount`    | `int`     | Number of vulnerabilities found     |
+| `status`       | `string`  | `"success"` or `"failed"`            |
 
 ---
 
@@ -494,7 +577,7 @@ Get analysis for all schedules in a project. Returns aggregated stats for each s
 {
   "data": [
     {
-      "scheduleId": "sch-001",
+      "scheduleId": 1,
       "scheduleName": "Daily Standup",
       "status": "active",
       "lastRun": "2026-04-15T02:00:00Z",
@@ -504,7 +587,7 @@ Get analysis for all schedules in a project. Returns aggregated stats for each s
       "failedRuns": 2
     },
     {
-      "scheduleId": "sch-002",
+      "scheduleId": 2,
       "scheduleName": "Weekly Report",
       "status": "paused",
       "lastRun": "2026-04-10T09:00:00Z",

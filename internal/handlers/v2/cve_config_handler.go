@@ -76,7 +76,7 @@ func (h *CveConfigHandler) Create(c *gin.Context) {
 		NotifyRoomId     string `json:"notifyRoomId"`
 		NotifyOnCritical *bool  `json:"notifyOnCritical"`
 		NotifyOnHigh     *bool  `json:"notifyOnHigh"`
-		NotifyOnMedium   *bool  `json:"notifyOnMedium"`
+		NotifyOnModerate *bool  `json:"notifyOnModerate"`
 		NotifyOnLow      *bool  `json:"notifyOnLow"`
 	}
 
@@ -89,7 +89,7 @@ func (h *CveConfigHandler) Create(c *gin.Context) {
 	notifyOnFailure := true
 	notifyOnCritical := true
 	notifyOnHigh := true
-	notifyOnMedium := false
+	notifyOnModerate := false
 	notifyOnLow := false
 	if input.NotifyOnSuccess != nil {
 		notifyOnSuccess = *input.NotifyOnSuccess
@@ -103,8 +103,8 @@ func (h *CveConfigHandler) Create(c *gin.Context) {
 	if input.NotifyOnHigh != nil {
 		notifyOnHigh = *input.NotifyOnHigh
 	}
-	if input.NotifyOnMedium != nil {
-		notifyOnMedium = *input.NotifyOnMedium
+	if input.NotifyOnModerate != nil {
+		notifyOnModerate = *input.NotifyOnModerate
 	}
 	if input.NotifyOnLow != nil {
 		notifyOnLow = *input.NotifyOnLow
@@ -122,7 +122,7 @@ func (h *CveConfigHandler) Create(c *gin.Context) {
 		NotifyRoomId:     input.NotifyRoomId,
 		NotifyOnCritical: notifyOnCritical,
 		NotifyOnHigh:     notifyOnHigh,
-		NotifyOnMedium:   notifyOnMedium,
+		NotifyOnModerate: notifyOnModerate,
 		NotifyOnLow:      notifyOnLow,
 	}
 
@@ -166,7 +166,7 @@ func (h *CveConfigHandler) Update(c *gin.Context) {
 		NotifyRoomId     *string `json:"notifyRoomId"`
 		NotifyOnCritical *bool   `json:"notifyOnCritical"`
 		NotifyOnHigh     *bool   `json:"notifyOnHigh"`
-		NotifyOnMedium   *bool   `json:"notifyOnMedium"`
+		NotifyOnModerate *bool   `json:"notifyOnModerate"`
 		NotifyOnLow      *bool   `json:"notifyOnLow"`
 	}
 
@@ -188,7 +188,7 @@ func (h *CveConfigHandler) Update(c *gin.Context) {
 		NotifyRoomId:     input.NotifyRoomId,
 		NotifyOnCritical: input.NotifyOnCritical,
 		NotifyOnHigh:     input.NotifyOnHigh,
-		NotifyOnMedium:   input.NotifyOnMedium,
+		NotifyOnModerate: input.NotifyOnModerate,
 		NotifyOnLow:      input.NotifyOnLow,
 	}
 
@@ -520,7 +520,7 @@ func buildCveConfigResponse(config *models.CveConfig) gin.H {
 	resp["notifyOnFailure"] = config.NotifyOnFailure
 	resp["notifyOnCritical"] = config.NotifyOnCritical
 	resp["notifyOnHigh"] = config.NotifyOnHigh
-	resp["notifyOnMedium"] = config.NotifyOnMedium
+	resp["notifyOnModerate"] = config.NotifyOnModerate
 	resp["notifyOnLow"] = config.NotifyOnLow
 	if config.NotifyRoomId != "" {
 		resp["notifyRoomId"] = config.NotifyRoomId

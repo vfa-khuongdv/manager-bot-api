@@ -25,7 +25,7 @@ func SetupV2Routes(
 	projectHandler := v2.NewProjectHandlerV2(projectService, cronService)
 	scheduleHandler := v2.NewScheduleHandlerV2(scheduleService, projectService, cronService, chatworkService, botService)
 	runLogHandler := v2.NewRunLogHandlerV2(logService)
-	dashboardHandler := v2.NewDashboardHandlerV2(logService)
+	dashboardHandler := v2.NewDashboardHandlerV2(logService, cveConfigService)
 	botHandler := v2.NewBotHandlerV2(botService)
 	botRequestHandler := v2.NewBotRequestHandlerV2(botService)
 	cveConfigHandler := v2.NewCveConfigHandler(cveConfigService, cronService)
@@ -59,6 +59,7 @@ func SetupV2Routes(
 
 		// Dashboard
 		jwt.GET("/dashboard/summary", dashboardHandler.GetSummary)
+		jwt.GET("/dashboard/cve-recent-scans", dashboardHandler.GetCveRecentScans)
 
 		// Run Logs (admin only — JWT required)
 		jwt.GET("/run-logs", runLogHandler.GetAll)

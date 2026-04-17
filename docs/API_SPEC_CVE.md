@@ -69,7 +69,7 @@ Stored in the `vulnerabilities` table. Linked to each scan log.
 | `scanLogId` | `int`      | `scan_log_id` | Foreign key to cve_scan_logs                |
 | `configId`  | `string`   | `config_id`   | Foreign key to cve_configs                  |
 | `cveId`     | `string`   | `cve_id`      | CVE identifier                              |
-| `severity`  | `string`   | `severity`    | `"critical"`, `"high"`, `"medium"`, `"low"` |
+| `severity`  | `string`   | `severity`    | `"critical"`, `"high"`, `"moderate"`, `"low"` |
 | `package`   | `string`   | `package`     | Package name                                |
 | `version`   | `string`   | `version`     | Package version                             |
 | `summary`   | `string?`  | `summary`     | Vulnerability summary                       |
@@ -220,7 +220,7 @@ Create a new CVE configuration.
 | `notifyRoomId`    | `string`  | No       | Chatwork Room ID for notifications                    |
 | `notifyOnCritical`| `boolean` | No       | Notify on Critical severity (default: true)           |
 | `notifyOnHigh`    | `boolean` | No       | Notify on High severity (default: true)              |
-| `notifyOnMedium`  | `boolean` | No       | Notify on Medium severity (default: false)           |
+| `notifyOnModerate`    | `boolean` | No       | Notify on Moderate severity (default: false)           |
 | `notifyOnLow`     | `boolean` | No       | Notify on Low severity (default: false)              |
 
 **Example request:**
