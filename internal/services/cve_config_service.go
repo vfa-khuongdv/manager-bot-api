@@ -84,14 +84,18 @@ func NewCveConfigService(repo repositories.ICveConfigRepository, logRepo reposit
 }
 
 type CveConfigForCron struct {
-	ID              string
-	ProjectID       int
-	Name            string
-	Cron            string
-	NotifyOnSuccess bool
-	NotifyOnFailure bool
-	NotifyRoomId    string
-	ApiKey          string
+	ID               string
+	ProjectID        int
+	Name             string
+	Cron             string
+	NotifyOnSuccess  bool
+	NotifyOnFailure  bool
+	NotifyRoomId     string
+	ApiKey           string
+	NotifyOnCritical bool
+	NotifyOnHigh     bool
+	NotifyOnMedium   bool
+	NotifyOnLow      bool
 }
 
 func (s *CveConfigService) GetAllForCron() ([]CveConfigForCron, error) {
@@ -106,43 +110,55 @@ func (s *CveConfigService) GetAllForCron() ([]CveConfigForCron, error) {
 			continue
 		}
 		result = append(result, CveConfigForCron{
-			ID:              cfg.ID,
-			ProjectID:       cfg.ProjectID,
-			Name:            cfg.Name,
-			Cron:            cfg.Cron,
-			NotifyOnSuccess: cfg.NotifyOnSuccess,
-			NotifyOnFailure: cfg.NotifyOnFailure,
-			NotifyRoomId:    cfg.NotifyRoomId,
-			ApiKey:          cfg.ApiKey,
+			ID:               cfg.ID,
+			ProjectID:        cfg.ProjectID,
+			Name:             cfg.Name,
+			Cron:             cfg.Cron,
+			NotifyOnSuccess:  cfg.NotifyOnSuccess,
+			NotifyOnFailure:  cfg.NotifyOnFailure,
+			NotifyRoomId:     cfg.NotifyRoomId,
+			ApiKey:           cfg.ApiKey,
+			NotifyOnCritical: cfg.NotifyOnCritical,
+			NotifyOnHigh:     cfg.NotifyOnHigh,
+			NotifyOnMedium:   cfg.NotifyOnMedium,
+			NotifyOnLow:      cfg.NotifyOnLow,
 		})
 	}
 	return result, nil
 }
 
 type CveConfigInput struct {
-	Name            string `json:"name" binding:"required"`
-	RepoUrl         string `json:"repoUrl"`
-	Languages       string `json:"languages" binding:"required"`
-	Cron            string `json:"cron" binding:"required"`
-	Status          string `json:"status"`
-	ApiKey          string `json:"apiKey"`
-	BotID           *int   `json:"botId"`
-	NotifyOnSuccess bool   `json:"notifyOnSuccess"`
-	NotifyOnFailure bool   `json:"notifyOnFailure"`
-	NotifyRoomId    string `json:"notifyRoomId"`
+	Name             string `json:"name" binding:"required"`
+	RepoUrl          string `json:"repoUrl"`
+	Languages        string `json:"languages" binding:"required"`
+	Cron             string `json:"cron" binding:"required"`
+	Status           string `json:"status"`
+	ApiKey           string `json:"apiKey"`
+	BotID            *int   `json:"botId"`
+	NotifyOnSuccess  bool   `json:"notifyOnSuccess"`
+	NotifyOnFailure  bool   `json:"notifyOnFailure"`
+	NotifyRoomId     string `json:"notifyRoomId"`
+	NotifyOnCritical bool   `json:"notifyOnCritical"`
+	NotifyOnHigh     bool   `json:"notifyOnHigh"`
+	NotifyOnMedium   bool   `json:"notifyOnMedium"`
+	NotifyOnLow      bool   `json:"notifyOnLow"`
 }
 
 type CveConfigUpdateInput struct {
-	Name            *string `json:"name"`
-	RepoUrl         *string `json:"repoUrl"`
-	Languages       *string `json:"languages"`
-	Cron            *string `json:"cron"`
-	Status          *string `json:"status"`
-	ApiKey          *string `json:"apiKey"`
-	BotID           *int    `json:"botId"`
-	NotifyOnSuccess *bool   `json:"notifyOnSuccess"`
-	NotifyOnFailure *bool   `json:"notifyOnFailure"`
-	NotifyRoomId    *string `json:"notifyRoomId"`
+	Name             *string `json:"name"`
+	RepoUrl          *string `json:"repoUrl"`
+	Languages        *string `json:"languages"`
+	Cron             *string `json:"cron"`
+	Status           *string `json:"status"`
+	ApiKey           *string `json:"apiKey"`
+	BotID            *int    `json:"botId"`
+	NotifyOnSuccess  *bool   `json:"notifyOnSuccess"`
+	NotifyOnFailure  *bool   `json:"notifyOnFailure"`
+	NotifyRoomId     *string `json:"notifyRoomId"`
+	NotifyOnCritical *bool   `json:"notifyOnCritical"`
+	NotifyOnHigh     *bool   `json:"notifyOnHigh"`
+	NotifyOnMedium   *bool   `json:"notifyOnMedium"`
+	NotifyOnLow      *bool   `json:"notifyOnLow"`
 }
 
 func (s *CveConfigService) GetByProjectID(projectID uint, paging *utils.Paging) ([]models.CveConfig, int64, error) {
@@ -164,18 +180,22 @@ func (s *CveConfigService) Create(projectID uint, input *CveConfigInput) (*model
 	}
 
 	config := &models.CveConfig{
-		ID:              generateUUID(),
-		ProjectID:       int(projectID),
-		Name:            input.Name,
-		RepoUrl:         input.RepoUrl,
-		Languages:       input.Languages,
-		Cron:            input.Cron,
-		Status:          status,
-		ApiKey:          input.ApiKey,
-		BotID:           input.BotID,
-		NotifyOnSuccess: input.NotifyOnSuccess,
-		NotifyOnFailure: input.NotifyOnFailure,
-		NotifyRoomId:    input.NotifyRoomId,
+		ID:               generateUUID(),
+		ProjectID:        int(projectID),
+		Name:             input.Name,
+		RepoUrl:          input.RepoUrl,
+		Languages:        input.Languages,
+		Cron:             input.Cron,
+		Status:           status,
+		ApiKey:           input.ApiKey,
+		BotID:            input.BotID,
+		NotifyOnSuccess:  input.NotifyOnSuccess,
+		NotifyOnFailure:  input.NotifyOnFailure,
+		NotifyRoomId:     input.NotifyRoomId,
+		NotifyOnCritical: input.NotifyOnCritical,
+		NotifyOnHigh:     input.NotifyOnHigh,
+		NotifyOnMedium:   input.NotifyOnMedium,
+		NotifyOnLow:      input.NotifyOnLow,
 	}
 
 	return s.repo.Create(config)
@@ -216,6 +236,18 @@ func (s *CveConfigService) Update(id string, projectID uint, input *CveConfigUpd
 	}
 	if input.NotifyRoomId != nil && *input.NotifyRoomId != "" {
 		config.NotifyRoomId = *input.NotifyRoomId
+	}
+	if input.NotifyOnCritical != nil {
+		config.NotifyOnCritical = *input.NotifyOnCritical
+	}
+	if input.NotifyOnHigh != nil {
+		config.NotifyOnHigh = *input.NotifyOnHigh
+	}
+	if input.NotifyOnMedium != nil {
+		config.NotifyOnMedium = *input.NotifyOnMedium
+	}
+	if input.NotifyOnLow != nil {
+		config.NotifyOnLow = *input.NotifyOnLow
 	}
 
 	return s.repo.Update(config)
@@ -314,6 +346,8 @@ func (s *CveConfigService) sendNotifications(config *models.CveConfig, vulns []m
 		return
 	}
 
+	filteredVulns := filterVulnerabilitiesBySeverity(vulns, config)
+
 	token := config.ApiKey
 	if config.BotID != nil && token == "" {
 		bot, err := s.chatworkBotRepo.GetByID(uint(*config.BotID))
@@ -331,7 +365,7 @@ func (s *CveConfigService) sendNotifications(config *models.CveConfig, vulns []m
 		return
 	}
 
-	message := formatCVEMessage(config, vulns)
+	message := formatCVEMessage(config, filteredVulns)
 	logger.Infof("[CVE] Sending message to room %s: %s", config.NotifyRoomId, message)
 
 	if err := s.chatworkSvc.SendMessage(token, config.NotifyRoomId, message); err != nil {
@@ -339,29 +373,87 @@ func (s *CveConfigService) sendNotifications(config *models.CveConfig, vulns []m
 	}
 }
 
+func filterVulnerabilitiesBySeverity(vulns []models.Vulnerability, config *models.CveConfig) []models.Vulnerability {
+	var filtered []models.Vulnerability
+	for _, v := range vulns {
+		severity := strings.ToLower(v.Severity)
+		switch severity {
+		case "critical":
+			if config.NotifyOnCritical {
+				filtered = append(filtered, v)
+			}
+		case "high":
+			if config.NotifyOnHigh {
+				filtered = append(filtered, v)
+			}
+		case "medium":
+			if config.NotifyOnMedium {
+				filtered = append(filtered, v)
+			}
+		case "low":
+			if config.NotifyOnLow {
+				filtered = append(filtered, v)
+			}
+		default:
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered
+}
+
 func formatCVEMessage(config *models.CveConfig, vulns []models.Vulnerability) string {
 	emoji := "✅"
 	status := "No Vulnerabilities"
+
 	if len(vulns) > 0 {
 		emoji = "🚨"
-		status = fmt.Sprintf("Found %d Vulnerabilities", len(vulns))
+		crit, high, medium, low := 0, 0, 0, 0
+		for _, v := range vulns {
+			switch strings.ToLower(v.Severity) {
+			case "critical":
+				crit++
+			case "high":
+				high++
+			case "medium":
+				medium++
+			case "low":
+				low++
+			}
+		}
+		status = fmt.Sprintf("%d Vulns | C:%d H:%d M:%d L:%d", len(vulns), crit, high, medium, low)
 	}
 
-	msg := fmt.Sprintf("[info][title]%s CVE Scan - %s[/title]", emoji, status)
-	msg += fmt.Sprintf("\n⚙️ Config: %s", config.Name)
-	msg += fmt.Sprintf("\n📦 Packages: %s", config.Languages)
+	msg := fmt.Sprintf("[info][title]%s CVE Scan Result[/title]", emoji)
+	msg += fmt.Sprintf("\n%s", status)
+	msg += fmt.Sprintf("\n[hr]\nConfig: %s", config.Name)
 
 	if len(vulns) > 0 {
 		msg += "\n[hr]"
-		msg += "\nVulnerabilities:"
-		for i, v := range vulns {
-			if i >= 5 {
-				msg += fmt.Sprintf("\n... and %d more", len(vulns)-5)
+
+		packageVulns := make(map[string][]models.Vulnerability)
+		for _, v := range vulns {
+			packageVulns[v.Package] = append(packageVulns[v.Package], v)
+		}
+
+		count := 0
+		for pkg, pkgVulns := range packageVulns {
+			if count >= 10 {
+				msg += fmt.Sprintf("\n... +%d more packages", len(packageVulns)-count)
 				break
 			}
-			msg += fmt.Sprintf("\n• %s (%s) - ⭐ %.0f", v.CVEID, v.Severity, v.Score)
+			if count > 0 {
+				msg += "\n[hr]"
+			}
+			msg += fmt.Sprintf("\n[%d] %s@%s (%d vuln)", count+1, pkg, pkgVulns[0].Version, len(pkgVulns))
+			for _, v := range pkgVulns {
+				if v.ReferenceURL != "" {
+					msg += fmt.Sprintf("\n- %s", v.ReferenceURL)
+				}
+			}
+			count++
 		}
 	}
+	msg += "\n[hr]\n🤖 Bot Dashboard Hub"
 	msg += "\n[/info]"
 
 	return msg
@@ -545,6 +637,10 @@ func (s *CveConfigService) scanConfig(config *models.CveConfig) ([]models.Vulner
 	}
 
 	osvResp, err := callOSVAPI(queries)
+	// print raw osvResp for debugging
+
+	logger.Infof("CVE scanConfig: callOSVAPI returned %v results", osvResp)
+
 	if err != nil {
 		return nil, err
 	}

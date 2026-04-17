@@ -64,16 +64,20 @@ func (h *CveConfigHandler) Create(c *gin.Context) {
 	}
 
 	var input struct {
-		Name            string `json:"name" binding:"required"`
-		RepoUrl         string `json:"repoUrl"`
-		Languages       string `json:"languages" binding:"required"`
-		Cron            string `json:"cron" binding:"required"`
-		Status          string `json:"status"`
-		ApiKey          string `json:"apiKey"`
-		BotID           *int   `json:"botId"`
-		NotifyOnSuccess *bool  `json:"notifyOnSuccess"`
-		NotifyOnFailure *bool  `json:"notifyOnFailure"`
-		NotifyRoomId    string `json:"notifyRoomId"`
+		Name             string `json:"name" binding:"required"`
+		RepoUrl          string `json:"repoUrl"`
+		Languages        string `json:"languages" binding:"required"`
+		Cron             string `json:"cron" binding:"required"`
+		Status           string `json:"status"`
+		ApiKey           string `json:"apiKey"`
+		BotID            *int   `json:"botId"`
+		NotifyOnSuccess  *bool  `json:"notifyOnSuccess"`
+		NotifyOnFailure  *bool  `json:"notifyOnFailure"`
+		NotifyRoomId     string `json:"notifyRoomId"`
+		NotifyOnCritical *bool  `json:"notifyOnCritical"`
+		NotifyOnHigh     *bool  `json:"notifyOnHigh"`
+		NotifyOnMedium   *bool  `json:"notifyOnMedium"`
+		NotifyOnLow      *bool  `json:"notifyOnLow"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -83,23 +87,43 @@ func (h *CveConfigHandler) Create(c *gin.Context) {
 
 	notifyOnSuccess := false
 	notifyOnFailure := true
+	notifyOnCritical := true
+	notifyOnHigh := true
+	notifyOnMedium := false
+	notifyOnLow := false
 	if input.NotifyOnSuccess != nil {
 		notifyOnSuccess = *input.NotifyOnSuccess
 	}
 	if input.NotifyOnFailure != nil {
 		notifyOnFailure = *input.NotifyOnFailure
 	}
+	if input.NotifyOnCritical != nil {
+		notifyOnCritical = *input.NotifyOnCritical
+	}
+	if input.NotifyOnHigh != nil {
+		notifyOnHigh = *input.NotifyOnHigh
+	}
+	if input.NotifyOnMedium != nil {
+		notifyOnMedium = *input.NotifyOnMedium
+	}
+	if input.NotifyOnLow != nil {
+		notifyOnLow = *input.NotifyOnLow
+	}
 	serviceInput := &services.CveConfigInput{
-		Name:            input.Name,
-		RepoUrl:         input.RepoUrl,
-		Languages:       input.Languages,
-		Cron:            input.Cron,
-		Status:          input.Status,
-		ApiKey:          input.ApiKey,
-		BotID:           input.BotID,
-		NotifyOnSuccess: notifyOnSuccess,
-		NotifyOnFailure: notifyOnFailure,
-		NotifyRoomId:    input.NotifyRoomId,
+		Name:             input.Name,
+		RepoUrl:          input.RepoUrl,
+		Languages:        input.Languages,
+		Cron:             input.Cron,
+		Status:           input.Status,
+		ApiKey:           input.ApiKey,
+		BotID:            input.BotID,
+		NotifyOnSuccess:  notifyOnSuccess,
+		NotifyOnFailure:  notifyOnFailure,
+		NotifyRoomId:     input.NotifyRoomId,
+		NotifyOnCritical: notifyOnCritical,
+		NotifyOnHigh:     notifyOnHigh,
+		NotifyOnMedium:   notifyOnMedium,
+		NotifyOnLow:      notifyOnLow,
 	}
 
 	config, err := h.service.Create(uint(projectID), serviceInput)
@@ -130,16 +154,20 @@ func (h *CveConfigHandler) Update(c *gin.Context) {
 	}
 
 	var input struct {
-		Name            *string `json:"name"`
-		RepoUrl         *string `json:"repoUrl"`
-		Languages       *string `json:"languages"`
-		Cron            *string `json:"cron"`
-		Status          *string `json:"status"`
-		ApiKey          *string `json:"apiKey"`
-		BotID           *int    `json:"botId"`
-		NotifyOnSuccess *bool   `json:"notifyOnSuccess"`
-		NotifyOnFailure *bool   `json:"notifyOnFailure"`
-		NotifyRoomId    *string `json:"notifyRoomId"`
+		Name             *string `json:"name"`
+		RepoUrl          *string `json:"repoUrl"`
+		Languages        *string `json:"languages"`
+		Cron             *string `json:"cron"`
+		Status           *string `json:"status"`
+		ApiKey           *string `json:"apiKey"`
+		BotID            *int    `json:"botId"`
+		NotifyOnSuccess  *bool   `json:"notifyOnSuccess"`
+		NotifyOnFailure  *bool   `json:"notifyOnFailure"`
+		NotifyRoomId     *string `json:"notifyRoomId"`
+		NotifyOnCritical *bool   `json:"notifyOnCritical"`
+		NotifyOnHigh     *bool   `json:"notifyOnHigh"`
+		NotifyOnMedium   *bool   `json:"notifyOnMedium"`
+		NotifyOnLow      *bool   `json:"notifyOnLow"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -148,16 +176,20 @@ func (h *CveConfigHandler) Update(c *gin.Context) {
 	}
 
 	serviceInput := &services.CveConfigUpdateInput{
-		Name:            input.Name,
-		RepoUrl:         input.RepoUrl,
-		Languages:       input.Languages,
-		Cron:            input.Cron,
-		Status:          input.Status,
-		ApiKey:          input.ApiKey,
-		BotID:           input.BotID,
-		NotifyOnSuccess: input.NotifyOnSuccess,
-		NotifyOnFailure: input.NotifyOnFailure,
-		NotifyRoomId:    input.NotifyRoomId,
+		Name:             input.Name,
+		RepoUrl:          input.RepoUrl,
+		Languages:        input.Languages,
+		Cron:             input.Cron,
+		Status:           input.Status,
+		ApiKey:           input.ApiKey,
+		BotID:            input.BotID,
+		NotifyOnSuccess:  input.NotifyOnSuccess,
+		NotifyOnFailure:  input.NotifyOnFailure,
+		NotifyRoomId:     input.NotifyRoomId,
+		NotifyOnCritical: input.NotifyOnCritical,
+		NotifyOnHigh:     input.NotifyOnHigh,
+		NotifyOnMedium:   input.NotifyOnMedium,
+		NotifyOnLow:      input.NotifyOnLow,
 	}
 
 	config, err := h.service.Update(configID, uint(projectID), serviceInput)
@@ -486,6 +518,10 @@ func buildCveConfigResponse(config *models.CveConfig) gin.H {
 	}
 	resp["notifyOnSuccess"] = config.NotifyOnSuccess
 	resp["notifyOnFailure"] = config.NotifyOnFailure
+	resp["notifyOnCritical"] = config.NotifyOnCritical
+	resp["notifyOnHigh"] = config.NotifyOnHigh
+	resp["notifyOnMedium"] = config.NotifyOnMedium
+	resp["notifyOnLow"] = config.NotifyOnLow
 	if config.NotifyRoomId != "" {
 		resp["notifyRoomId"] = config.NotifyRoomId
 	}

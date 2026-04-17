@@ -19,6 +19,10 @@ type CveConfig struct {
 	NotifyOnSuccess      bool           `gorm:"default:false" json:"notifyOnSuccess"`
 	NotifyOnFailure      bool           `gorm:"default:true" json:"notifyOnFailure"`
 	NotifyRoomId         string         `gorm:"type:varchar(255)" json:"notifyRoomId,omitempty"`
+	NotifyOnCritical     bool           `gorm:"default:true" json:"notifyOnCritical"`
+	NotifyOnHigh         bool           `gorm:"default:true" json:"notifyOnHigh"`
+	NotifyOnMedium       bool           `gorm:"default:false" json:"notifyOnMedium"`
+	NotifyOnLow          bool           `gorm:"default:false" json:"notifyOnLow"`
 	LastScan             *time.Time     `json:"lastScan,omitempty"`
 	LastStatus           string         `gorm:"type:varchar(20);default:'no_scan'" json:"lastStatus"`
 	VulnerabilitiesFound int            `gorm:"default:0" json:"vulnerabilitiesFound"`

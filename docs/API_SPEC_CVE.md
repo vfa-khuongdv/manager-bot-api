@@ -122,6 +122,10 @@ Format for OSV (Open Source Vulnerabilities) API queries.
 | `notifyOnSuccess`      | `boolean` | Send notification on success       |
 | `notifyOnFailure`      | `boolean` | Send notification on failure       |
 | `notifyRoomId`         | `string?` | Chatwork Room ID for notifications |
+| `notifyOnCritical`     | `boolean` | Notify on Critical severity        |
+| `notifyOnHigh`         | `boolean` | Notify on High severity           |
+| `notifyOnMedium`       | `boolean` | Notify on Medium severity         |
+| `notifyOnLow`          | `boolean` | Notify on Low severity            |
 | `lastScan`             | `string?` | Last scan timestamp                |
 | `lastStatus`           | `string?` | Last scan status                   |
 | `vulnerabilitiesFound` | `number`  | Count of last scan vulnerabilities |
@@ -214,6 +218,10 @@ Create a new CVE configuration.
 | `notifyOnSuccess` | `boolean` | No       | Send notification when scan succeeds (default: false) |
 | `notifyOnFailure` | `boolean` | No       | Send notification when scan fails (default: true)     |
 | `notifyRoomId`    | `string`  | No       | Chatwork Room ID for notifications                    |
+| `notifyOnCritical`| `boolean` | No       | Notify on Critical severity (default: true)           |
+| `notifyOnHigh`    | `boolean` | No       | Notify on High severity (default: true)              |
+| `notifyOnMedium`  | `boolean` | No       | Notify on Medium severity (default: false)           |
+| `notifyOnLow`     | `boolean` | No       | Notify on Low severity (default: false)              |
 
 **Example request:**
 
